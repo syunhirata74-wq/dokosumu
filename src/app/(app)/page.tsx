@@ -72,15 +72,15 @@ export default function HomePage() {
     return (
       <div className="p-4 text-center">
         <div className="text-4xl mb-4">💑</div>
-        <h2 className="text-lg font-semibold mb-2">カップル設定が必要です</h2>
+        <h2 className="text-lg font-semibold mb-2">はじめましょう！</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          設定ページからカップルを作成するか、招待コードで参加してください
+          二人でアプリを使うための設定をします
         </p>
         <Link
-          href="/settings"
+          href="/onboarding"
           className="inline-block px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium"
         >
-          設定へ
+          セットアップを始める
         </Link>
       </div>
     );

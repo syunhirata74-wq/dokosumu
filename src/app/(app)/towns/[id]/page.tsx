@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -142,14 +143,14 @@ export default function TownDetailPage() {
       const res = await fetch(`/api/rent?code=${town.station_code}`);
       const data = await res.json();
       if (data.rent_avg === null || data.error) {
-        alert("家賃データが見つかりませんでした");
+        toast.error("家賃データが見つかりませんでした");
         setFetchingRent(false);
         return;
       }
       const { data: saved } = await supabase
         .from("town_rents").upsert({ town_id: townId, rent_avg: data.rent_avg }, { onConflict: "town_id" }).select().single();
       setRent(saved);
-    } catch { alert("家賃データの取得に失敗しました"); }
+    } catch { toast.error("家賃データの取得に失敗しました"); }
     setFetchingRent(false);
   }
 
@@ -172,14 +173,14 @@ export default function TownDetailPage() {
       const data = await res.json();
       if (data.error) {
         if (res.status === 503) {
-          alert("Google Places APIが未設定です。設定ページからAPIキーを設定してください。");
+          toast.error("施設データの取得に失敗しました");
         } else {
-          alert("施設データの取得に失敗しました");
+          toast.error("施設データの取得に失敗しました");
         }
       } else {
         setFacilities(data.facilities ?? []);
       }
-    } catch { alert("施設データの取得に失敗しました"); }
+    } catch { toast.error("施設データの取得に失敗しました"); }
     setFetchingFacilities(false);
   }
 

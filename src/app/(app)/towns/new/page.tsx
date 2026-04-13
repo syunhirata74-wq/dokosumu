@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -65,7 +66,7 @@ export default function NewTownPage() {
       .single();
 
     if (error) {
-      alert("登録に失敗しました: " + error.message);
+      toast.error("登録に失敗しました: " + error.message);
       setSubmitting(false);
       return;
     }

@@ -127,6 +127,11 @@ export default function LoginPage() {
           </div>
         </CardContent>
       </Card>
+      <div className="text-center text-[10px] text-muted-foreground mt-2 space-x-2">
+        <a href="/terms" className="underline">利用規約</a>
+        <span>|</span>
+        <a href="/privacy" className="underline">プライバシーポリシー</a>
+      </div>
     </div>
   );
 }

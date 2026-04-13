@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -61,7 +62,7 @@ export default function NewSpotPage() {
     });
 
     if (error) {
-      alert("登録に失敗しました: " + error.message);
+      toast.error("登録に失敗しました: " + error.message);
       setSubmitting(false);
       return;
     }
