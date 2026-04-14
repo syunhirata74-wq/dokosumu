@@ -8,7 +8,7 @@ import type { Town, Rating } from "@/types/database";
 import { RATING_CATEGORIES } from "@/types/database";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Star, MapPin } from "lucide-react";
+import { Plus, Star, MapPin, Heart, Compass } from "lucide-react";
 
 type TownWithRatings = Town & { ratings: Rating[] };
 
@@ -52,7 +52,7 @@ export default function MatchesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse text-2xl">💗</div>
+        <div className="animate-pulse"><Heart size={24} className="text-primary" /></div>
       </div>
     );
   }
@@ -72,17 +72,17 @@ export default function MatchesPage() {
       <Tabs defaultValue="wishlist">
         <TabsList className="w-full">
           <TabsTrigger value="wishlist" className="flex-1">
-            📌 行きたい ({wishlistTowns.length})
+            行きたい ({wishlistTowns.length})
           </TabsTrigger>
           <TabsTrigger value="visited" className="flex-1">
-            ✅ 行った ({visitedTowns.length})
+            行った ({visitedTowns.length})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="wishlist" className="mt-4 space-y-3">
           {wishlistTowns.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-4xl mb-4">🃏</div>
+              <Compass size={40} className="mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground text-sm mb-4">
                 まだマッチがありません
               </p>
@@ -103,7 +103,7 @@ export default function MatchesPage() {
         <TabsContent value="visited" className="mt-4 space-y-3">
           {visitedTowns.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-4xl mb-4">👟</div>
+              <MapPin size={40} className="mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground text-sm">
                 まだ訪問した町がありません
               </p>
@@ -153,7 +153,7 @@ function TownMatchCard({ town }: { town: Town }) {
               <h3 className="font-bold text-base">{town.name}</h3>
               <p className="text-xs text-muted-foreground">{town.station}</p>
             </div>
-            <span className="text-2xl">💗</span>
+            <Heart size={20} className="text-primary" fill="currentColor" />
           </div>
         </div>
       </Card>
