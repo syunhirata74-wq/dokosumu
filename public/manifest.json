@@ -4,8 +4,8 @@
   "description": "二人で理想の住む町を見つけよう",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fce7f3",
-  "theme_color": "#ec4899",
+  "background_color": "#ecfdf5",
+  "theme_color": "#10b981",
   "orientation": "portrait",
   "icons": [
     {

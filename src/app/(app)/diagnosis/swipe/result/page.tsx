@@ -143,7 +143,7 @@ export default function SwipeResultPage() {
       <div className="grid grid-cols-3 gap-2">
         <Card>
           <CardContent className="p-3 text-center">
-            <div className="text-2xl font-bold text-pink-500">{liked.length}</div>
+            <div className="text-2xl font-bold text-emerald-500">{liked.length}</div>
             <div className="text-[10px] text-muted-foreground">💗 住みたい</div>
           </CardContent>
         </Card>
@@ -176,7 +176,7 @@ export default function SwipeResultPage() {
                     {[1, 2, 3, 4, 5].map((s) => (
                       <span
                         key={s}
-                        className={`text-xs ${s <= Math.round(trait.avg) ? "text-pink-400" : "text-gray-200"}`}
+                        className={`text-xs ${s <= Math.round(trait.avg) ? "text-emerald-400" : "text-gray-200"}`}
                       >
                         ★
                       </span>

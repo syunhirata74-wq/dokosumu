@@ -236,7 +236,7 @@ export default function TownDetailPage() {
           {town.station && <span>🚃 {town.station}</span>}
           {town.visited_at && <span>📅 {new Date(town.visited_at).toLocaleDateString("ja-JP")}</span>}
           {!town.visited && (
-            <button onClick={markAsVisited} className="text-pink-500 font-medium active:scale-95 transition-transform">
+            <button onClick={markAsVisited} className="text-emerald-500 font-medium active:scale-95 transition-transform">
               📌 行きたい → タップで「行った」に
             </button>
           )}

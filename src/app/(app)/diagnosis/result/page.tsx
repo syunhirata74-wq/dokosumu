@@ -103,7 +103,7 @@ export default function ResultPage() {
       <h2 className="font-bold text-lg">おすすめの町 TOP5</h2>
       <div className="space-y-3">
         {results.map((result, i) => (
-          <Card key={result.town.code} className={i === 0 ? "border-pink-400 border-2" : ""}>
+          <Card key={result.town.code} className={i === 0 ? "border-emerald-400 border-2" : ""}>
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <div className="text-2xl font-bold w-8 text-center flex-shrink-0">

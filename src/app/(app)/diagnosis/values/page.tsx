@@ -192,18 +192,18 @@ export default function ValuesPage() {
                 const prompt = prompts[Math.floor(Math.random() * prompts.length)];
                 const meHigher = v.myScore > v.partnerScore;
                 return (
-                  <Card key={v.label} className="border-pink-200">
+                  <Card key={v.label} className="border-emerald-200">
                     <CardContent className="p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-lg">{v.icon}</span>
                         <span className="font-bold text-sm">{v.label}</span>
-                        <span className="text-xs bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full ml-auto">
+                        <span className="text-xs bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full ml-auto">
                           ズレ {v.gap.toFixed(1)}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-center text-xs mb-3">
-                        <div className="bg-pink-50 rounded-lg p-2">
-                          <div className="text-lg font-bold text-pink-500">{v.myScore}</div>
+                        <div className="bg-emerald-50 rounded-lg p-2">
+                          <div className="text-lg font-bold text-emerald-500">{v.myScore}</div>
                           <div className="text-muted-foreground">{me?.name ?? "自分"}</div>
                         </div>
                         <div className="bg-violet-50 rounded-lg p-2">
@@ -254,10 +254,10 @@ export default function ValuesPage() {
                   <div key={v.label} className="flex items-center gap-2 text-sm">
                     <span className="w-5">{v.icon}</span>
                     <span className="flex-1 min-w-0 truncate text-xs">{v.label}</span>
-                    <span className="w-8 text-right font-medium text-pink-500">{v.myScore}</span>
+                    <span className="w-8 text-right font-medium text-emerald-500">{v.myScore}</span>
                     <div className="w-16 h-2 bg-muted rounded-full overflow-hidden relative">
                       <div
-                        className="absolute left-0 top-0 h-full bg-pink-300 rounded-full"
+                        className="absolute left-0 top-0 h-full bg-emerald-300 rounded-full"
                         style={{ width: `${(v.myScore / 5) * 100}%` }}
                       />
                       <div

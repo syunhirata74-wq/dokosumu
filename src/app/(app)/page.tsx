@@ -203,7 +203,7 @@ export default function HomePage() {
               onTouchEnd={handleTouchEnd}
             >
               {/* Photo */}
-              <div className="relative h-56 bg-gradient-to-br from-pink-200 to-pink-100">
+              <div className="relative h-56 bg-gradient-to-br from-emerald-200 to-emerald-100">
                 {currentTown.imageUrl && (
                   <img src={currentTown.imageUrl} alt={currentTown.name} className="w-full h-full object-cover" loading="eager" />
                 )}

@@ -223,10 +223,10 @@ export default function ConditionsPage() {
               {/* My priority */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-pink-500 font-medium">
+                  <span className="text-emerald-500 font-medium">
                     {me?.name ?? "自分"}
                   </span>
-                  <span className="font-bold text-pink-500">
+                  <span className="font-bold text-emerald-500">
                     {getMyWeight(cond.id)}
                   </span>
                 </div>

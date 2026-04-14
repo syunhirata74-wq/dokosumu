@@ -156,7 +156,7 @@ export default function SwipePage() {
           onTouchEnd={handleTouchEnd}
         >
           {/* Town card content */}
-          <div className="bg-gradient-to-br from-pink-100 to-pink-50 p-6 text-center">
+          <div className="bg-gradient-to-br from-emerald-100 to-emerald-50 p-6 text-center">
             <h2 className="text-2xl font-bold mb-1">{currentTown.name}</h2>
             <p className="text-sm text-muted-foreground">{currentTown.pref}</p>
           </div>
@@ -217,7 +217,7 @@ export default function SwipePage() {
         </button>
         <button
           onClick={() => swipe("right")}
-          className="w-16 h-16 rounded-full border-2 border-pink-400 flex items-center justify-center text-2xl active:scale-90 transition-transform bg-white shadow-md"
+          className="w-16 h-16 rounded-full border-2 border-emerald-400 flex items-center justify-center text-2xl active:scale-90 transition-transform bg-white shadow-md"
         >
           💗
         </button>

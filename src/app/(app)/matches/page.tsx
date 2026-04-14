@@ -63,7 +63,7 @@ export default function MatchesPage() {
   return (
     <div className="p-4 space-y-4 pb-20">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold">マッチ</h1>
+        <h1 className="text-lg font-bold">候補</h1>
         <Link href="/towns/new" className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md active:scale-90 transition-transform">
           <Plus size={20} />
         </Link>
@@ -125,7 +125,7 @@ export default function MatchesPage() {
                             <div className="text-xl font-bold text-primary">{avg.toFixed(1)}</div>
                             <div className="flex gap-0.5">
                               {[1, 2, 3, 4, 5].map((s) => (
-                                <span key={s} className={`text-xs ${s <= Math.round(avg) ? "text-pink-400" : "text-pink-100"}`}>★</span>
+                                <span key={s} className={`text-xs ${s <= Math.round(avg) ? "text-emerald-400" : "text-emerald-100"}`}>★</span>
                               ))}
                             </div>
                           </div>
@@ -147,7 +147,7 @@ function TownMatchCard({ town }: { town: Town }) {
   return (
     <Link href={`/towns/${town.id}`}>
       <Card className="active:scale-[0.98] transition-transform overflow-hidden">
-        <div className="bg-gradient-to-r from-pink-100 to-pink-50 p-3">
+        <div className="bg-gradient-to-r from-emerald-100 to-emerald-50 p-3">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-bold text-base">{town.name}</h3>

@@ -129,7 +129,7 @@ export default function RankingPage() {
               <Card
                 key={score.town.id}
                 className={
-                  index === 0 ? "border-pink-400 border-2" : undefined
+                  index === 0 ? "border-emerald-400 border-2" : undefined
                 }
               >
                 <CardContent className="p-4">
@@ -307,7 +307,7 @@ export default function RankingPage() {
                           className="flex items-center gap-2 text-sm"
                         >
                           <span
-                            className={`w-8 text-right font-medium ${winner === 1 ? "text-pink-500" : ""}`}
+                            className={`w-8 text-right font-medium ${winner === 1 ? "text-emerald-500" : ""}`}
                           >
                             {v1.toFixed(1)}
                           </span>
