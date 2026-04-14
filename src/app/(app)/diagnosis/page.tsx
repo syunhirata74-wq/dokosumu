@@ -42,6 +42,18 @@ export default function DiagnosisPage() {
           </Button>
         </CardContent>
       </Card>
+
+      <button
+        onClick={() => router.push("/diagnosis/values")}
+        className="w-full max-w-sm bg-white/80 rounded-xl p-4 flex items-center gap-3 active:scale-[0.98] transition-transform"
+      >
+        <span className="text-2xl">📊</span>
+        <div className="text-left flex-1">
+          <p className="font-bold text-sm">ふたりの価値観マップ</p>
+          <p className="text-xs text-muted-foreground">評価データから二人のズレを可視化</p>
+        </div>
+        <span className="text-muted-foreground">→</span>
+      </button>
     </div>
   );
 }
