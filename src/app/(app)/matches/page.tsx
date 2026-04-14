@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import type { Town, Rating, TownComment, Spot } from "@/types/database";
+import type { Town, Rating, TownComment, Spot, Profile } from "@/types/database";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,56 +17,50 @@ type TownWithData = Town & {
   spots: Spot[];
 };
 
-type Step = {
-  label: string;
-  done: boolean;
-  icon: React.ReactNode;
-};
-
-function getTownSteps(town: TownWithData, userId: string | undefined): { steps: Step[]; nextAction: { label: string; href: string } | null; progress: number } {
-  const hasVisited = town.visited;
-  const hasRated = town.ratings.some((r) => r.user_id === userId);
-  const hasComment = town.town_comments.some((c) => c.user_id === userId);
-
-  const steps: Step[] = [
-    { label: "候補に追加", done: true, icon: <Heart size={14} /> },
-    { label: "散歩に行く", done: hasVisited, icon: <Footprints size={14} /> },
-    { label: "評価する", done: hasRated, icon: <Star size={14} /> },
-    { label: "感想を書く", done: hasComment, icon: <MessageCircle size={14} /> },
-  ];
-
-  const doneCount = steps.filter((s) => s.done).length;
-  const progress = (doneCount / steps.length) * 100;
-
-  let nextAction: { label: string; href: string } | null = null;
-  if (!hasVisited) {
-    nextAction = { label: "行った！をタップ", href: `/towns/${town.id}` };
-  } else if (!hasRated) {
-    nextAction = { label: "評価する", href: `/towns/${town.id}/rate` };
-  } else if (!hasComment) {
-    nextAction = { label: "感想を書く", href: `/towns/${town.id}` };
+function MiniAvatar({ profile, size = 20 }: { profile: Profile; size?: number }) {
+  if (profile.avatar_url) {
+    return <img src={profile.avatar_url} alt={profile.name} className="rounded-full object-cover" style={{ width: size, height: size }} />;
   }
+  return (
+    <div className="rounded-full bg-primary/10 flex items-center justify-center text-[8px] font-bold" style={{ width: size, height: size }}>
+      {profile.name?.charAt(0)}
+    </div>
+  );
+}
 
-  return { steps, nextAction, progress };
+function getRatingStatus(town: TownWithData, me: Profile | undefined, partner: Profile | undefined) {
+  const myRated = me ? town.ratings.some((r) => r.user_id === me.id) : false;
+  const partnerRated = partner ? town.ratings.some((r) => r.user_id === partner.id) : false;
+  const myCommented = me ? town.town_comments.some((c) => c.user_id === me.id) : false;
+  const partnerCommented = partner ? town.town_comments.some((c) => c.user_id === partner.id) : false;
+  return { myRated, partnerRated, myCommented, partnerCommented };
 }
 
 export default function MatchesPage() {
   const { user, profile } = useAuth();
   const [towns, setTowns] = useState<TownWithData[]>([]);
+  const [members, setMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!profile?.couple_id) { setLoading(false); return; }
-    loadTowns();
+    loadData();
   }, [profile?.couple_id]);
 
-  async function loadTowns() {
-    const { data } = await supabase
-      .from("towns")
-      .select("*, ratings(*), town_comments(*), spots(*)")
-      .eq("couple_id", profile!.couple_id!)
-      .order("created_at", { ascending: false });
-    setTowns((data as TownWithData[]) ?? []);
+  async function loadData() {
+    const [townsRes, membersRes] = await Promise.all([
+      supabase
+        .from("towns")
+        .select("*, ratings(*), town_comments(*), spots(*)")
+        .eq("couple_id", profile!.couple_id!)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("profiles")
+        .select("*")
+        .eq("couple_id", profile!.couple_id!),
+    ]);
+    setTowns((townsRes.data as TownWithData[]) ?? []);
+    setMembers(membersRes.data ?? []);
     setLoading(false);
   }
 
@@ -75,9 +69,12 @@ export default function MatchesPage() {
       visited: true,
       visited_at: new Date().toISOString().split("T")[0],
     }).eq("id", townId);
-    toast.success("散歩完了！次は評価してみよう");
-    loadTowns();
+    toast.success("散歩完了！次は二人で評価してみよう");
+    loadData();
   }
+
+  const me = members.find((m) => m.id === user?.id);
+  const partner = members.find((m) => m.id !== user?.id);
 
   if (loading) {
     return <div className="flex items-center justify-center h-64"><div className="animate-pulse"><Heart size={24} className="text-primary" /></div></div>;
@@ -95,14 +92,22 @@ export default function MatchesPage() {
         </Link>
       </div>
 
+      {/* Couple header */}
+      {partner && (
+        <div className="flex items-center justify-center gap-3 py-2">
+          {me && <MiniAvatar profile={me} size={28} />}
+          <span className="text-xs text-muted-foreground">×</span>
+          <MiniAvatar profile={partner} size={28} />
+          <span className="text-xs text-muted-foreground ml-1">
+            {partner.name}と一緒に探し中
+          </span>
+        </div>
+      )}
+
       <Tabs defaultValue="wishlist">
         <TabsList className="w-full">
-          <TabsTrigger value="wishlist" className="flex-1">
-            行きたい ({wishlistTowns.length})
-          </TabsTrigger>
-          <TabsTrigger value="visited" className="flex-1">
-            行った ({visitedTowns.length})
-          </TabsTrigger>
+          <TabsTrigger value="wishlist" className="flex-1">行きたい ({wishlistTowns.length})</TabsTrigger>
+          <TabsTrigger value="visited" className="flex-1">行った ({visitedTowns.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="wishlist" className="mt-4 space-y-3">
@@ -115,57 +120,32 @@ export default function MatchesPage() {
               </Link>
             </div>
           ) : (
-            wishlistTowns.map((town) => {
-              const { steps, progress } = getTownSteps(town, user?.id);
-              return (
-                <Card key={town.id} className="overflow-hidden">
-                  <CardContent className="p-0">
-                    <Link href={`/towns/${town.id}`}>
-                      <div className="p-4 pb-2">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-bold text-base">{town.name}</h3>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <MapPin size={12} /> {town.station}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs text-muted-foreground">{Math.round(progress)}%</div>
-                          </div>
+            wishlistTowns.map((town) => (
+              <Card key={town.id} className="overflow-hidden">
+                <CardContent className="p-0">
+                  <Link href={`/towns/${town.id}`}>
+                    <div className="p-4 pb-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-bold text-base">{town.name}</h3>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <MapPin size={12} /> {town.station}
+                          </p>
                         </div>
-                        {/* Progress bar */}
-                        <div className="h-1.5 bg-muted rounded-full mt-3 overflow-hidden">
-                          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${progress}%` }} />
-                        </div>
-                        {/* Steps */}
-                        <div className="flex gap-1 mt-2">
-                          {steps.map((step, i) => (
-                            <div key={i} className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-full ${step.done ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                              {step.done ? <Check size={10} /> : step.icon}
-                              <span>{step.label}</span>
-                            </div>
-                          ))}
+                        <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                          次: 散歩に行こう
                         </div>
                       </div>
-                    </Link>
-                    {/* Next action */}
-                    <div className="px-4 pb-3 pt-1">
-                      <Button
-                        size="sm"
-                        className="w-full h-10"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          markVisited(town.id);
-                        }}
-                      >
-                        <Footprints size={16} className="mr-1" />
-                        散歩に行った！
-                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })
+                  </Link>
+                  <div className="px-4 pb-3">
+                    <Button size="sm" className="w-full h-10" onClick={(e) => { e.preventDefault(); markVisited(town.id); }}>
+                      <Footprints size={16} className="mr-1" /> 二人で散歩してきた！
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
           )}
         </TabsContent>
 
@@ -177,10 +157,12 @@ export default function MatchesPage() {
             </div>
           ) : (
             visitedTowns.map((town) => {
-              const { steps, nextAction, progress } = getTownSteps(town, user?.id);
-              const isComplete = progress === 100;
+              const status = getRatingStatus(town, me, partner);
+              const bothRated = status.myRated && status.partnerRated;
+              const neitherRated = !status.myRated && !status.partnerRated;
+
               return (
-                <Card key={town.id} className={`overflow-hidden ${isComplete ? "border-primary" : ""}`}>
+                <Card key={town.id} className={`overflow-hidden ${bothRated ? "border-primary" : ""}`}>
                   <CardContent className="p-0">
                     <Link href={`/towns/${town.id}`}>
                       <div className="p-4 pb-2">
@@ -191,35 +173,60 @@ export default function MatchesPage() {
                               <MapPin size={12} /> {town.station}
                             </p>
                           </div>
-                          {isComplete ? (
-                            <div className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
-                              <Check size={12} /> 完了
+                          {bothRated && (
+                            <div className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                              <Check size={10} /> 二人とも評価済み
                             </div>
-                          ) : (
-                            <div className="text-xs text-muted-foreground">{Math.round(progress)}%</div>
                           )}
                         </div>
-                        {/* Progress bar */}
-                        <div className="h-1.5 bg-muted rounded-full mt-3 overflow-hidden">
-                          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${progress}%` }} />
-                        </div>
-                        {/* Steps */}
-                        <div className="flex gap-1 mt-2">
-                          {steps.map((step, i) => (
-                            <div key={i} className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-full ${step.done ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                              {step.done ? <Check size={10} /> : step.icon}
-                              <span>{step.label}</span>
+
+                        {/* Two-person rating status */}
+                        <div className="flex gap-2 mt-3">
+                          {me && (
+                            <div className={`flex-1 flex items-center gap-2 p-2 rounded-lg text-xs ${status.myRated ? "bg-primary/5" : "bg-muted"}`}>
+                              <MiniAvatar profile={me} size={20} />
+                              <div>
+                                <div className="font-medium">{me.name}</div>
+                                <div className="text-muted-foreground text-[10px]">
+                                  {status.myRated ? (
+                                    <span className="text-primary flex items-center gap-0.5"><Star size={8} fill="currentColor" /> 評価済み</span>
+                                  ) : "未評価"}
+                                </div>
+                              </div>
                             </div>
-                          ))}
+                          )}
+                          {partner && (
+                            <div className={`flex-1 flex items-center gap-2 p-2 rounded-lg text-xs ${status.partnerRated ? "bg-primary/5" : "bg-muted"}`}>
+                              <MiniAvatar profile={partner} size={20} />
+                              <div>
+                                <div className="font-medium">{partner.name}</div>
+                                <div className="text-muted-foreground text-[10px]">
+                                  {status.partnerRated ? (
+                                    <span className="text-primary flex items-center gap-0.5"><Star size={8} fill="currentColor" /> 評価済み</span>
+                                  ) : "未評価"}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </Link>
+
                     {/* Next action */}
-                    {nextAction && (
-                      <div className="px-4 pb-3 pt-1">
-                        <Link href={nextAction.href}>
+                    {!status.myRated && (
+                      <div className="px-4 pb-3">
+                        <Link href={`/towns/${town.id}/rate`}>
                           <Button size="sm" variant="outline" className="w-full h-10">
-                            {nextAction.label}
+                            <Star size={14} className="mr-1" /> 評価する
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                    {status.myRated && !status.myCommented && (
+                      <div className="px-4 pb-3">
+                        <Link href={`/towns/${town.id}`}>
+                          <Button size="sm" variant="outline" className="w-full h-10">
+                            <MessageCircle size={14} className="mr-1" /> 感想を書く
                           </Button>
                         </Link>
                       </div>
