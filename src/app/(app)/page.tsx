@@ -1,260 +1,250 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import type { Town, Rating } from "@/types/database";
-import { RATING_CATEGORIES } from "@/types/database";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-type TownWithRatings = Town & { ratings: Rating[] };
+import type { TownProfile } from "@/lib/diagnosis";
+import Link from "next/link";
+import { toast } from "sonner";
 
 export default function HomePage() {
-  const { profile } = useAuth();
-  const [towns, setTowns] = useState<TownWithRatings[]>([]);
+  const { user, profile } = useAuth();
+  const [towns, setTowns] = useState<TownProfile[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [swipeDir, setSwipeDir] = useState<"left" | "right" | null>(null);
+  const [dragX, setDragX] = useState(0);
+  const [touchStart, setTouchStart] = useState<{ x: number } | null>(null);
+  const [likedCount, setLikedCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!profile?.couple_id) {
-      setLoading(false);
-      return;
-    }
-    loadTowns();
-  }, [profile?.couple_id]);
+    fetch("/town-profiles.json")
+      .then((r) => r.json())
+      .then((data: TownProfile[]) => {
+        const shuffled = [...data].sort(() => Math.random() - 0.5);
+        setTowns(shuffled);
+        setLoading(false);
+      });
+  }, []);
 
-  async function loadTowns() {
-    const { data } = await supabase
-      .from("towns")
-      .select("*, ratings(*)")
-      .eq("couple_id", profile!.couple_id!)
-      .order("created_at", { ascending: false });
-    setTowns((data as TownWithRatings[]) ?? []);
-    setLoading(false);
+  if (!profile?.couple_id) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <div className="text-5xl">💑</div>
+          <h2 className="text-lg font-bold">はじめましょう！</h2>
+          <p className="text-sm text-muted-foreground">二人でアプリを使うための設定をします</p>
+          <Link href="/onboarding" className="inline-block px-6 py-3 bg-primary text-primary-foreground rounded-full font-medium">
+            セットアップを始める
+          </Link>
+        </div>
+      </div>
+    );
   }
 
-  async function markAsVisited(townId: string) {
-    await supabase
-      .from("towns")
-      .update({
-        visited: true,
-        visited_at: new Date().toISOString().split("T")[0],
-      })
-      .eq("id", townId);
-    loadTowns();
-  }
+  const currentTown = towns[currentIndex];
+  const isComplete = currentIndex >= towns.length && towns.length > 0;
 
-  function getAverageScore(ratings: Rating[]): number | null {
-    if (ratings.length === 0) return null;
-    const keys = RATING_CATEGORIES.map((c) => c.key);
-    let total = 0;
-    let count = 0;
-    for (const r of ratings) {
-      for (const k of keys) {
-        total += r[k as keyof Rating] as number;
-        count++;
+  async function swipe(direction: "left" | "right") {
+    if (!currentTown || !profile?.couple_id) return;
+
+    setSwipeDir(direction);
+
+    if (direction === "right") {
+      // Add to wishlist
+      const { error } = await supabase.from("towns").insert({
+        couple_id: profile.couple_id,
+        name: currentTown.name + "エリア",
+        station: currentTown.name + "駅",
+        station_code: currentTown.code,
+        visited: false,
+        lat: 0,
+        lng: 0,
+      });
+      if (!error) {
+        setLikedCount((c) => c + 1);
+        toast.success(`💗 ${currentTown.name}をマッチリストに追加！`);
       }
     }
-    return count > 0 ? total / count : null;
+
+    setTimeout(() => {
+      setSwipeDir(null);
+      setDragX(0);
+      setCurrentIndex((i) => i + 1);
+    }, 300);
+  }
+
+  function handleTouchStart(e: React.TouchEvent) {
+    setTouchStart({ x: e.touches[0].clientX });
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    if (!touchStart) return;
+    setDragX(e.touches[0].clientX - touchStart.x);
+  }
+
+  function handleTouchEnd() {
+    if (Math.abs(dragX) > 80) {
+      swipe(dragX > 0 ? "right" : "left");
+    } else {
+      setDragX(0);
+    }
+    setTouchStart(null);
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse text-2xl">🏠</div>
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <div className="animate-pulse text-4xl">🃏</div>
       </div>
     );
   }
 
-  if (!profile?.couple_id) {
+  if (isComplete) {
     return (
-      <div className="p-4 text-center">
-        <div className="text-4xl mb-4">💑</div>
-        <h2 className="text-lg font-semibold mb-2">はじめましょう！</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          二人でアプリを使うための設定をします
-        </p>
-        <Link
-          href="/onboarding"
-          className="inline-block px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium"
-        >
-          セットアップを始める
-        </Link>
-      </div>
-    );
-  }
-
-  const visitedTowns = towns.filter((t) => t.visited);
-  const wishlistTowns = towns.filter((t) => !t.visited);
-
-  function DiagnosisBanner() {
-    return (
-      <Link href="/diagnosis">
-        <div className="bg-gradient-to-r from-pink-100 to-pink-50 rounded-xl p-4 flex items-center gap-3 mb-4 active:scale-[0.98] transition-transform">
-          <span className="text-3xl">🔮</span>
-          <div className="flex-1">
-            <p className="font-bold text-sm">住みたい町診断</p>
-            <p className="text-xs text-muted-foreground">二人にぴったりの町を見つけよう</p>
-          </div>
-          <span className="text-primary font-bold text-sm">→</span>
-        </div>
-      </Link>
-    );
-  }
-
-  function TownCard({ town }: { town: TownWithRatings }) {
-    const avg = getAverageScore(town.ratings);
-    return (
-      <Link key={town.id} href={`/towns/${town.id}`}>
-        <Card className="active:scale-[0.98] transition-transform">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-base truncate">
-                  {town.name}
-                </h3>
-                {town.station && (
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    🚃 {town.station}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {town.visited && town.visited_at
-                    ? new Date(town.visited_at).toLocaleDateString("ja-JP")
-                    : "未訪問"}
-                </p>
-              </div>
-              <div className="text-right ml-3">
-                {avg !== null ? (
-                  <>
-                    <div className="text-2xl font-bold text-primary">
-                      {avg.toFixed(1)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">/ 5.0</div>
-                  </>
-                ) : (
-                  <div className="text-sm text-muted-foreground">未評価</div>
-                )}
-              </div>
-            </div>
-            {town.ratings.length > 0 && (
-              <div className="mt-2 flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <span
-                    key={star}
-                    className={`text-sm ${
-                      avg !== null && star <= Math.round(avg)
-                        ? "text-pink-400"
-                        : "text-pink-100"
-                    }`}
-                  >
-                    ★
-                  </span>
-                ))}
-                <span className="text-xs text-muted-foreground ml-1">
-                  ({town.ratings.length}人が評価)
-                </span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </Link>
-    );
-  }
-
-  function WishlistCard({ town }: { town: TownWithRatings }) {
-    return (
-      <Card className="active:scale-[0.98] transition-transform">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <Link href={`/towns/${town.id}`} className="flex-1 min-w-0">
-              <h3 className="font-semibold text-base truncate">{town.name}</h3>
-              {town.station && (
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  🚃 {town.station}
-                </p>
-              )}
+      <div className="min-h-[80vh] flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <div className="text-5xl">🎉</div>
+          <h2 className="text-xl font-bold">全ての町をチェックしました！</h2>
+          <p className="text-sm text-muted-foreground">
+            {likedCount}件の町とマッチしました
+          </p>
+          <div className="space-y-3">
+            <Link href="/matches" className="block px-6 py-3 bg-primary text-primary-foreground rounded-full font-medium">
+              💗 マッチを見る
             </Link>
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                markAsVisited(town.id);
+              onClick={() => {
+                const shuffled = [...towns].sort(() => Math.random() - 0.5);
+                setTowns(shuffled);
+                setCurrentIndex(0);
+                setLikedCount(0);
               }}
-              className="ml-3 px-3 py-2 text-xs bg-primary text-primary-foreground rounded-lg font-medium active:scale-95 transition-transform"
+              className="block w-full px-6 py-3 border rounded-full font-medium text-sm"
             >
-              行った!
+              🔄 もう一回
             </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
+  if (!currentTown) return null;
+
+  const rotation = dragX * 0.08;
+  const scoreIcons: Record<string, string> = {
+    cafe: "☕", nightlife: "🌃", quiet: "🌙", nature: "🌿",
+    family: "👶", shopping: "🛍️", gourmet: "🍽️",
+    access: "🚃", cost: "💰", safety: "🔒",
+  };
+
   return (
-    <div className="p-4 space-y-4">
-      <DiagnosisBanner />
-      <Tabs defaultValue="visited">
-        <TabsList className="w-full">
-          <TabsTrigger value="visited" className="flex-1">
-            ✅ 行った ({visitedTowns.length})
-          </TabsTrigger>
-          <TabsTrigger value="wishlist" className="flex-1">
-            📌 行きたい ({wishlistTowns.length})
-          </TabsTrigger>
-        </TabsList>
+    <div className="min-h-[80vh] flex flex-col p-4 max-w-sm mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <h1 className="text-lg font-bold">🃏 発見</h1>
+        <span className="text-xs text-muted-foreground">
+          💗 {likedCount}
+        </span>
+      </div>
 
-        <TabsContent value="visited" className="mt-4 space-y-3">
-          {visitedTowns.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-4xl mb-4">🗺️</div>
-              <p className="text-muted-foreground mb-4">
-                まだ町が登録されていません
-              </p>
-              <Link
-                href="/towns/new"
-                className="inline-block px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium"
-              >
-                最初の町を登録する
-              </Link>
+      {/* Card */}
+      <div className="flex-1 flex items-center justify-center relative">
+        {/* Swipe labels */}
+        <div
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-gray-100 rounded-full px-3 py-2 text-sm font-bold text-gray-500 transition-opacity"
+          style={{ opacity: dragX < -30 ? Math.min(1, Math.abs(dragX) / 100) : 0 }}
+        >
+          NOPE
+        </div>
+        <div
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-pink-100 rounded-full px-3 py-2 text-sm font-bold text-pink-500 transition-opacity"
+          style={{ opacity: dragX > 30 ? Math.min(1, dragX / 100) : 0 }}
+        >
+          LIKE
+        </div>
+
+        <div
+          className={`w-full rounded-2xl shadow-xl border overflow-hidden bg-card transition-all ${
+            swipeDir === "right"
+              ? "translate-x-[120%] rotate-12 opacity-0"
+              : swipeDir === "left"
+                ? "-translate-x-[120%] -rotate-12 opacity-0"
+                : ""
+          }`}
+          style={
+            !swipeDir
+              ? {
+                  transform: `translateX(${dragX}px) rotate(${rotation}deg)`,
+                  transition: dragX === 0 ? "transform 0.3s" : "none",
+                }
+              : undefined
+          }
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Town visual header */}
+          <div className="bg-gradient-to-br from-pink-200 via-pink-100 to-white p-8 text-center">
+            <h2 className="text-3xl font-bold mb-1">{currentTown.name}</h2>
+            <p className="text-sm text-muted-foreground">{currentTown.pref}</p>
+            <div className="flex justify-center gap-1 mt-3">
+              {currentTown.tags.map((tag) => (
+                <span key={tag} className="bg-white/70 text-xs px-2 py-1 rounded-full">
+                  {tag}
+                </span>
+              ))}
             </div>
-          ) : (
-            visitedTowns.map((town) => (
-              <TownCard key={town.id} town={town} />
-            ))
-          )}
-        </TabsContent>
+          </div>
 
-        <TabsContent value="wishlist" className="mt-4 space-y-3">
-          {wishlistTowns.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-4xl mb-4">📌</div>
-              <p className="text-muted-foreground mb-4">
-                行きたい町を追加しよう
-              </p>
-              <Link
-                href="/towns/new"
-                className="inline-block px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium"
-              >
-                行きたい町を追加
-              </Link>
+          {/* Info */}
+          <div className="p-5 space-y-4">
+            <p className="text-sm text-center text-muted-foreground">
+              {currentTown.description}
+            </p>
+
+            <div className="flex justify-center">
+              <div className="bg-muted rounded-full px-4 py-2 text-sm font-bold">
+                💰 {(currentTown.rent2ldk / 10000).toFixed(0)}万円 / 月
+              </div>
             </div>
-          ) : (
-            wishlistTowns.map((town) => (
-              <WishlistCard key={town.id} town={town} />
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
 
-      {/* Floating Action Button */}
-      <Link
-        href="/towns/new"
-        className="fixed bottom-20 right-4 z-40 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center text-2xl active:scale-95 transition-transform"
-      >
-        +
-      </Link>
+            {/* Top scores */}
+            <div className="flex justify-center gap-3">
+              {Object.entries(currentTown.scores)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 4)
+                .map(([key, val]) => (
+                  <div key={key} className="text-center">
+                    <div className="text-lg">{scoreIcons[key]}</div>
+                    <div className="flex gap-0.5 justify-center mt-0.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <span key={s} className={`text-[8px] ${s <= val ? "text-pink-400" : "text-gray-200"}`}>●</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex justify-center items-center gap-6 mt-4 mb-2">
+        <button
+          onClick={() => swipe("left")}
+          className="w-16 h-16 rounded-full border-2 border-gray-300 flex items-center justify-center text-2xl active:scale-90 transition-transform bg-white shadow-lg"
+        >
+          ✕
+        </button>
+        <button
+          onClick={() => swipe("right")}
+          className="w-20 h-20 rounded-full border-2 border-pink-400 flex items-center justify-center text-3xl active:scale-90 transition-transform bg-white shadow-lg"
+        >
+          💗
+        </button>
+      </div>
     </div>
   );
 }
