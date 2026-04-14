@@ -89,6 +89,21 @@ export default function HomePage() {
   const visitedTowns = towns.filter((t) => t.visited);
   const wishlistTowns = towns.filter((t) => !t.visited);
 
+  function DiagnosisBanner() {
+    return (
+      <Link href="/diagnosis">
+        <div className="bg-gradient-to-r from-pink-100 to-pink-50 rounded-xl p-4 flex items-center gap-3 mb-4 active:scale-[0.98] transition-transform">
+          <span className="text-3xl">🔮</span>
+          <div className="flex-1">
+            <p className="font-bold text-sm">住みたい町診断</p>
+            <p className="text-xs text-muted-foreground">二人にぴったりの町を見つけよう</p>
+          </div>
+          <span className="text-primary font-bold text-sm">→</span>
+        </div>
+      </Link>
+    );
+  }
+
   function TownCard({ town }: { town: TownWithRatings }) {
     const avg = getAverageScore(town.ratings);
     return (
@@ -179,6 +194,7 @@ export default function HomePage() {
 
   return (
     <div className="p-4 space-y-4">
+      <DiagnosisBanner />
       <Tabs defaultValue="visited">
         <TabsList className="w-full">
           <TabsTrigger value="visited" className="flex-1">

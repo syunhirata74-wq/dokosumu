@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -117,10 +119,10 @@ export default function LoginPage() {
                   : "メールでログイン"}
             </Button>
           </form>
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <button
               type="button"
-              className="text-xs text-muted-foreground underline"
+              className="text-xs text-muted-foreground underline block mx-auto"
               onClick={() => {
                 setIsSignUp(!isSignUp);
                 setError("");
@@ -130,6 +132,28 @@ export default function LoginPage() {
                 ? "既にアカウントをお持ちの方"
                 : "新規アカウント作成"}
             </button>
+            {!isSignUp && (
+              <button
+                type="button"
+                className="text-[10px] text-muted-foreground underline block mx-auto"
+                onClick={async () => {
+                  if (!email) {
+                    setError("メールアドレスを入力してください");
+                    return;
+                  }
+                  const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/login`,
+                  });
+                  if (resetError) {
+                    setError(resetError.message);
+                  } else {
+                    toast.success("パスワードリセットメールを送信しました");
+                  }
+                }}
+              >
+                パスワードを忘れた方
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>

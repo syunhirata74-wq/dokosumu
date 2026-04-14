@@ -25,6 +25,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from "next/dynamic";
 
 const FacilityMap = dynamic(() => import("@/components/facility-map"), {
@@ -190,6 +191,25 @@ export default function TownDetailPage() {
     router.push("/");
   }
 
+  async function markAsVisited() {
+    await supabase.from("towns").update({ visited: true, visited_at: new Date().toISOString().split("T")[0] }).eq("id", townId);
+    toast.success("行った町に変更しました！");
+    loadData();
+  }
+
+  async function deleteSpot(spotId: string) {
+    if (!confirm("このスポットを削除しますか？")) return;
+    await supabase.from("spots").delete().eq("id", spotId);
+    setSpots(spots.filter((s) => s.id !== spotId));
+    toast.success("スポットを削除しました");
+  }
+
+  async function deleteComment(commentId: string) {
+    await supabase.from("town_comments").delete().eq("id", commentId);
+    setComments(comments.filter((c) => c.id !== commentId));
+    toast.success("コメントを削除しました");
+  }
+
   function formatYen(yen: number): string {
     return `${(yen / 10000).toFixed(1)}万円`;
   }
@@ -215,7 +235,11 @@ export default function TownDetailPage() {
         <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
           {town.station && <span>🚃 {town.station}</span>}
           {town.visited_at && <span>📅 {new Date(town.visited_at).toLocaleDateString("ja-JP")}</span>}
-          {!town.visited && <span className="text-pink-500 font-medium">📌 行きたい</span>}
+          {!town.visited && (
+            <button onClick={markAsVisited} className="text-pink-500 font-medium active:scale-95 transition-transform">
+              📌 行きたい → タップで「行った」に
+            </button>
+          )}
         </div>
       </div>
 
@@ -486,10 +510,14 @@ export default function TownDetailPage() {
                         <Badge variant="secondary" className="mt-1 text-xs">{cat?.label ?? spot.category}</Badge>
                         {spot.memo && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{spot.memo}</p>}
                       </div>
-                      <button onClick={() => toggleFavorite(spot.id)} className="flex flex-col items-center justify-center gap-0.5 px-2 active:scale-90 transition-transform">
-                        <span className="text-xl">{bothFav ? "💕" : iMyFav ? "💗" : "🤍"}</span>
-                        {spotFavs.length > 0 && <span className="text-[10px] text-muted-foreground">{spotFavs.length}</span>}
-                      </button>
+                      <div className="flex flex-col items-center gap-1">
+                        <button onClick={() => toggleFavorite(spot.id)} className="active:scale-90 transition-transform">
+                          <span className="text-xl">{bothFav ? "💕" : iMyFav ? "💗" : "🤍"}</span>
+                        </button>
+                        <button onClick={() => deleteSpot(spot.id)} className="text-[10px] text-muted-foreground">
+                          ✕
+                        </button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -517,8 +545,15 @@ export default function TownDetailPage() {
                     )}
                     <div className={`max-w-[75%] ${isMe ? "items-end" : "items-start"}`}>
                       <div className={`px-3 py-2 rounded-2xl text-sm ${isMe ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-muted rounded-tl-sm"}`}>{comment.content}</div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5 px-1">
-                        {new Date(comment.created_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      <div className="flex items-center gap-2 mt-0.5 px-1">
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(comment.created_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        {isMe && (
+                          <button onClick={() => deleteComment(comment.id)} className="text-[10px] text-muted-foreground hover:text-destructive">
+                            削除
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

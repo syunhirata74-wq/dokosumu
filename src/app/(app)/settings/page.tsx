@@ -484,6 +484,26 @@ export default function SettingsPage() {
       >
         ログアウト
       </Button>
+
+      <button
+        onClick={async () => {
+          if (!confirm("本当にアカウントを削除しますか？\n全てのデータが削除され、元に戻せません。")) return;
+          if (!confirm("最終確認: アカウントを完全に削除します。よろしいですか？")) return;
+          try {
+            // Delete profile first (cascade will handle related data)
+            if (user) {
+              await supabase.from("profiles").delete().eq("id", user.id);
+            }
+            await signOut();
+            setMessage("アカウントを削除しました");
+          } catch {
+            setMessage("削除に失敗しました。お問い合わせください。");
+          }
+        }}
+        className="w-full text-center text-xs text-muted-foreground underline py-2"
+      >
+        アカウントを削除する
+      </button>
     </div>
   );
 }
