@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const LINE_CLIENT_ID = process.env.LINE_LOGIN_CLIENT_ID ?? "";
 const LINE_REDIRECT_URI = process.env.NEXT_PUBLIC_SITE_URL
   ? `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/line/callback`
-  : "https://doko-sumitai.vercel.app/api/auth/line/callback";
+  : "https://dokosumu.vercel.app/api/auth/line/callback";
 
 export async function GET(request: NextRequest) {
   // token is optional - if logged in, passes Supabase token for profile update
