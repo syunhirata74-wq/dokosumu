@@ -16,13 +16,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Sparkles, Pin, RefreshCw, Home } from "lucide-react";
 
 export default function ResultPage() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const [towns, setTowns] = useState<TownProfile[]>([]);
   const [results, setResults] = useState<{ town: TownProfile; score: number }[]>([]);
-  const [coupleType, setCoupleType] = useState<{ icon: string; label: string }>({ icon: "💕", label: "" });
+  const [coupleType, setCoupleType] = useState<{ icon: string; label: string }>({ icon: "", label: "" });
   const [loading, setLoading] = useState(true);
   const [addingTown, setAddingTown] = useState<string | null>(null);
 
@@ -77,7 +78,7 @@ export default function ResultPage() {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="text-5xl animate-bounce">🔮</div>
+          <div className="animate-bounce"><Sparkles size={48} className="mx-auto text-primary" /></div>
           <p className="text-sm text-muted-foreground animate-pulse">
             二人にぴったりの町を探しています...
           </p>
@@ -86,7 +87,7 @@ export default function ResultPage() {
     );
   }
 
-  const medals = ["🥇", "🥈", "🥉", "4.", "5."];
+  const medals = ["1.", "2.", "3.", "4.", "5."];
 
   return (
     <div className="p-4 space-y-4 max-w-sm mx-auto pb-20">
@@ -143,7 +144,7 @@ export default function ResultPage() {
               >
                 {addingTown === result.town.code
                   ? "追加中..."
-                  : "📌 行きたいリストに追加"}
+                  : <span className="inline-flex items-center gap-1"><Pin size={14} /> 行きたいリストに追加</span>}
               </Button>
             </CardContent>
           </Card>
@@ -153,7 +154,7 @@ export default function ResultPage() {
       {results.length === 0 && (
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
-            <div className="text-4xl mb-2">😅</div>
+            <p className="text-4xl mb-2">...</p>
             <p>条件に合う町が見つかりませんでした</p>
             <p className="text-xs mt-1">家賃の上限を上げてみてください</p>
           </CardContent>
@@ -170,11 +171,11 @@ export default function ResultPage() {
           variant="outline"
           className="w-full h-12"
         >
-          🔄 もう一度診断する
+          <span className="inline-flex items-center gap-1"><RefreshCw size={16} /> もう一度診断する</span>
         </Button>
         <Link href="/">
           <Button variant="outline" className="w-full h-12">
-            🏠 ホームに戻る
+            <span className="inline-flex items-center gap-1"><Home size={16} /> ホームに戻る</span>
           </Button>
         </Link>
       </div>

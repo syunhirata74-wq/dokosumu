@@ -8,6 +8,7 @@ import { RATING_CATEGORIES, type RatingKey } from "@/types/database";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trophy, Train, Home, ShoppingCart, TreePine, UtensilsCrossed, Coins, Heart, BarChart3, Scale } from "lucide-react";
 import {
   Radar,
   RadarChart,
@@ -24,6 +25,16 @@ type TownScore = {
   town: Town;
   averages: Record<RatingKey, number>;
   totalAvg: number;
+};
+
+const RATING_ICON_MAP: Record<string, React.ReactNode> = {
+  living_env: <Home size={14} />,
+  transport: <Train size={14} />,
+  shopping: <ShoppingCart size={14} />,
+  nature: <TreePine size={14} />,
+  dining: <UtensilsCrossed size={14} />,
+  rent: <Coins size={14} />,
+  overall: <Heart size={14} />,
 };
 
 export default function RankingPage() {
@@ -89,7 +100,7 @@ export default function RankingPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse text-2xl">🏆</div>
+        <div className="animate-pulse"><Trophy size={28} /></div>
       </div>
     );
   }
@@ -119,7 +130,7 @@ export default function RankingPage() {
         <TabsContent value="ranking" className="space-y-3 mt-4">
           {townScores.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-4xl mb-4">📊</div>
+              <div className="mb-4"><BarChart3 size={40} className="mx-auto text-muted-foreground" /></div>
               <p className="text-muted-foreground">
                 評価済みの町がありません
               </p>
@@ -135,21 +146,15 @@ export default function RankingPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="text-2xl font-bold text-muted-foreground w-8 text-center">
-                      {index === 0
-                        ? "🥇"
-                        : index === 1
-                          ? "🥈"
-                          : index === 2
-                            ? "🥉"
-                            : `${index + 1}`}
+                      {`${index + 1}.`}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold truncate">
                         {score.town.name}
                       </h3>
                       {score.town.station && (
-                        <p className="text-xs text-muted-foreground">
-                          🚃 {score.town.station}
+                        <p className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                          <Train size={12} /> {score.town.station}
                         </p>
                       )}
                     </div>
@@ -165,7 +170,7 @@ export default function RankingPage() {
                   <div className="mt-3 grid grid-cols-7 gap-1">
                     {RATING_CATEGORIES.map((cat) => (
                       <div key={cat.key} className="text-center">
-                        <div className="text-xs mb-1">{cat.icon}</div>
+                        <div className="text-xs mb-1 flex justify-center">{RATING_ICON_MAP[cat.key] ?? cat.icon}</div>
                         <div className="h-12 bg-muted rounded-full relative overflow-hidden">
                           <div
                             className="absolute bottom-0 left-0 right-0 bg-primary/20 rounded-full"
@@ -200,8 +205,8 @@ export default function RankingPage() {
                         key={cat.key}
                         className="flex items-center justify-between text-sm"
                       >
-                        <span>
-                          {cat.icon} {cat.label}
+                        <span className="inline-flex items-center gap-1">
+                          {RATING_ICON_MAP[cat.key] ?? cat.icon} {cat.label}
                         </span>
                         <span className="font-medium">
                           {best.town.name}{" "}
@@ -221,7 +226,7 @@ export default function RankingPage() {
         <TabsContent value="compare" className="space-y-4 mt-4">
           {townScores.length < 2 ? (
             <div className="text-center py-12">
-              <div className="text-4xl mb-4">⚖️</div>
+              <div className="mb-4"><Scale size={40} className="mx-auto text-muted-foreground" /></div>
               <p className="text-muted-foreground">
                 比較するには2つ以上の町を評価してください
               </p>
@@ -311,8 +316,8 @@ export default function RankingPage() {
                           >
                             {v1.toFixed(1)}
                           </span>
-                          <div className="flex-1 text-center text-xs">
-                            {cat.icon} {cat.label}
+                          <div className="flex-1 text-center text-xs inline-flex items-center justify-center gap-1">
+                            {RATING_ICON_MAP[cat.key] ?? cat.icon} {cat.label}
                           </div>
                           <span
                             className={`w-8 font-medium ${winner === 2 ? "text-violet-500" : ""}`}

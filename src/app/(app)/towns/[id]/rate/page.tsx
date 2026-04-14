@@ -8,6 +8,17 @@ import { RATING_CATEGORIES, type RatingKey } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
+import { Home, Train, ShoppingCart, TreePine, UtensilsCrossed, Coins, Heart, BarChart3 } from "lucide-react";
+
+const RATING_ICON_MAP: Record<string, React.ReactNode> = {
+  living_env: <Home size={16} />,
+  transport: <Train size={16} />,
+  shopping: <ShoppingCart size={16} />,
+  nature: <TreePine size={16} />,
+  dining: <UtensilsCrossed size={16} />,
+  rent: <Coins size={16} />,
+  overall: <Heart size={16} />,
+};
 
 export default function RateTownPage() {
   const params = useParams();
@@ -76,7 +87,7 @@ export default function RateTownPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse text-2xl">📊</div>
+        <div className="animate-pulse"><BarChart3 size={28} /></div>
       </div>
     );
   }
@@ -97,8 +108,8 @@ export default function RateTownPage() {
             {RATING_CATEGORIES.map((cat) => (
               <div key={cat.key} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    {cat.icon} {cat.label}
+                  <span className="text-sm font-medium inline-flex items-center gap-1">
+                    {RATING_ICON_MAP[cat.key] ?? cat.icon} {cat.label}
                   </span>
                   <span className="text-lg font-bold text-primary w-8 text-right">
                     {scores[cat.key]}

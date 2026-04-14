@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { Home } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -41,7 +42,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-emerald-100 via-emerald-50 to-white">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center pb-2">
-          <div className="text-4xl mb-1">🏠</div>
+          <div className="mb-1"><Home size={36} className="mx-auto text-primary" /></div>
           <CardTitle className="text-xl">どこ住む？</CardTitle>
           <p className="text-sm text-muted-foreground">
             二人で理想の町を見つけよう

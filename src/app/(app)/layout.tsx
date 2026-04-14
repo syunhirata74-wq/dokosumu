@@ -4,6 +4,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -18,7 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse text-2xl">🏠</div>
+        <Loader2 size={24} className="animate-spin text-primary" />
       </div>
     );
   }

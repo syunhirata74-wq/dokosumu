@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Users, PartyPopper, Home } from "lucide-react";
 
 export default function OnboardingPage() {
   const { user, profile } = useAuth();
@@ -76,7 +77,7 @@ export default function OnboardingPage() {
     // Step 0: Create or Join
     <Card key="0">
       <CardContent className="p-6 space-y-6 text-center">
-        <div className="text-5xl">💑</div>
+        <div><Users size={48} className="mx-auto text-primary" /></div>
         <h2 className="text-xl font-bold">二人で始めよう</h2>
         <p className="text-sm text-muted-foreground">
           カップルでアプリを使うための設定をします
@@ -117,7 +118,7 @@ export default function OnboardingPage() {
     // Step 1: Share invite code
     <Card key="1">
       <CardContent className="p-6 space-y-6 text-center">
-        <div className="text-5xl">🎉</div>
+        <div><PartyPopper size={48} className="mx-auto text-primary" /></div>
         <h2 className="text-xl font-bold">カップルを作成しました！</h2>
         <p className="text-sm text-muted-foreground">
           この招待コードを相手に送ってね
@@ -139,7 +140,7 @@ export default function OnboardingPage() {
     // Step 2: Ready to go
     <Card key="2">
       <CardContent className="p-6 space-y-6 text-center">
-        <div className="text-5xl">🏠</div>
+        <div><Home size={48} className="mx-auto text-primary" /></div>
         <h2 className="text-xl font-bold">準備完了！</h2>
         <p className="text-sm text-muted-foreground">
           さっそく気になる町を登録してみよう

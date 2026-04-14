@@ -26,7 +26,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Home, Train, Calendar, Pin, Heart, Coins, Truck, Map, MessageCircle, ShoppingCart, TreePine, UtensilsCrossed } from "lucide-react";
 import dynamic from "next/dynamic";
+
+const RATING_ICON_MAP: Record<string, React.ReactNode> = {
+  living_env: <Home size={16} />,
+  transport: <Train size={16} />,
+  shopping: <ShoppingCart size={16} />,
+  nature: <TreePine size={16} />,
+  dining: <UtensilsCrossed size={16} />,
+  rent: <Coins size={16} />,
+  overall: <Heart size={16} />,
+};
 
 const FacilityMap = dynamic(() => import("@/components/facility-map"), {
   ssr: false,
@@ -214,7 +225,7 @@ export default function TownDetailPage() {
     return `${(yen / 10000).toFixed(1)}万円`;
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-pulse text-2xl">🏠</div></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-pulse"><Home size={28} /></div></div>;
   if (!town) return <div className="p-4 text-center text-muted-foreground">町が見つかりません</div>;
 
   const myRating = getMyRating();
@@ -233,11 +244,11 @@ export default function TownDetailPage() {
           <button onClick={deleteTown} className="text-xs text-muted-foreground px-2 py-1 border rounded-md">削除</button>
         </div>
         <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-          {town.station && <span>🚃 {town.station}</span>}
-          {town.visited_at && <span>📅 {new Date(town.visited_at).toLocaleDateString("ja-JP")}</span>}
+          {town.station && <span className="inline-flex items-center gap-1"><Train size={14} /> {town.station}</span>}
+          {town.visited_at && <span className="inline-flex items-center gap-1"><Calendar size={14} /> {new Date(town.visited_at).toLocaleDateString("ja-JP")}</span>}
           {!town.visited && (
-            <button onClick={markAsVisited} className="text-emerald-500 font-medium active:scale-95 transition-transform">
-              📌 行きたい → タップで「行った」に
+            <button onClick={markAsVisited} className="text-emerald-500 font-medium active:scale-95 transition-transform inline-flex items-center gap-1">
+              <Pin size={14} /> 行きたい → タップで「行った」に
             </button>
           )}
         </div>
@@ -247,15 +258,15 @@ export default function TownDetailPage() {
       <Card>
         <CardContent className="p-4 flex items-center justify-between">
           <div>
-            <span className="font-semibold text-sm">
-              {bothRecommended ? "💕 二人とも推し！" : recommendedBy.length > 0 ? `💗 ${recommendedBy[0]}が推し` : "推しの町にする？"}
+            <span className="font-semibold text-sm inline-flex items-center gap-1">
+              {bothRecommended ? <><Heart size={16} className="text-pink-500 fill-pink-500" /> 二人とも推し！</> : recommendedBy.length > 0 ? <><Heart size={16} className="text-pink-500 fill-pink-500" /> {recommendedBy[0]}が推し</> : "推しの町にする？"}
             </span>
           </div>
           <button
             onClick={toggleRecommendation}
             className="text-2xl active:scale-90 transition-transform"
           >
-            {iRecommended ? "💗" : "🤍"}
+            {iRecommended ? <Heart size={24} className="text-pink-500 fill-pink-500" /> : <Heart size={24} className="text-gray-300" />}
           </button>
         </CardContent>
       </Card>
@@ -276,7 +287,7 @@ export default function TownDetailPage() {
                 if (!result) return null;
                 return (
                   <div key={cat.key} className="flex items-center gap-2">
-                    <span className="text-sm w-6">{cat.icon}</span>
+                    <span className="text-sm w-6">{RATING_ICON_MAP[cat.key] ?? cat.icon}</span>
                     <span className="text-sm flex-1 min-w-0 truncate">{cat.label}</span>
                     <div className="flex items-center gap-1.5">
                       {result.values.map((v, i) => (
@@ -298,7 +309,7 @@ export default function TownDetailPage() {
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">💰 家賃相場</h2>
+            <h2 className="font-semibold inline-flex items-center gap-1"><Coins size={18} /> 家賃相場</h2>
             {town.station_code && (
               <Button variant="outline" size="sm" onClick={fetchRent} disabled={fetchingRent}>
                 {fetchingRent ? "取得中..." : rent ? "更新" : "家賃を調べる"}
@@ -328,7 +339,7 @@ export default function TownDetailPage() {
       {rent && rent.rent_avg && rent.rent_avg > 0 && (
         <Card>
           <CardContent className="p-4">
-            <h2 className="font-semibold mb-3">🚚 引っ越し初期費用</h2>
+            <h2 className="font-semibold mb-3 inline-flex items-center gap-1"><Truck size={18} /> 引っ越し初期費用</h2>
             <div className="space-y-2 text-sm">
               {[
                 { label: "敷金（0〜1ヶ月）", amount: 0 },
@@ -358,7 +369,7 @@ export default function TownDetailPage() {
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">🚃 通勤チェック</h2>
+            <h2 className="font-semibold inline-flex items-center gap-1"><Train size={18} /> 通勤チェック</h2>
             {members.some((m) => m.workplace_station) && town.station && !fetchingCommute && (
               <Button variant="outline" size="sm" onClick={() => {
                 members.forEach((m) => {
@@ -427,7 +438,7 @@ export default function TownDetailPage() {
       {/* Facilities */}
       <Card>
         <CardContent className="p-4">
-          <h2 className="font-semibold mb-3">🗺️ 周辺施設</h2>
+          <h2 className="font-semibold mb-3 inline-flex items-center gap-1"><Map size={18} /> 周辺施設</h2>
           <div className="grid grid-cols-4 gap-1.5 mb-3">
             {FACILITY_TYPES.map((ft) => (
               <button
@@ -512,7 +523,7 @@ export default function TownDetailPage() {
                       </div>
                       <div className="flex flex-col items-center gap-1">
                         <button onClick={() => toggleFavorite(spot.id)} className="active:scale-90 transition-transform">
-                          <span className="text-xl">{bothFav ? "💕" : iMyFav ? "💗" : "🤍"}</span>
+                          {bothFav ? <Heart size={20} className="text-pink-500 fill-pink-500" /> : iMyFav ? <Heart size={20} className="text-pink-500 fill-pink-500" /> : <Heart size={20} className="text-gray-300" />}
                         </button>
                         <button onClick={() => deleteSpot(spot.id)} className="text-[10px] text-muted-foreground">
                           ✕
@@ -530,7 +541,7 @@ export default function TownDetailPage() {
       {/* Comments */}
       <Card>
         <CardContent className="p-4">
-          <h2 className="font-semibold mb-3">💬 感想</h2>
+          <h2 className="font-semibold mb-3 inline-flex items-center gap-1"><MessageCircle size={18} /> 感想</h2>
           {comments.length > 0 ? (
             <div className="space-y-3 mb-4">
               {comments.map((comment) => {

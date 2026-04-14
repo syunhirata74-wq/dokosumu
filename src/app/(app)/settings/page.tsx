@@ -18,6 +18,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Train, Check, MessageCircle } from "lucide-react";
 
 function Avatar({
   profile,
@@ -386,7 +387,7 @@ export default function SettingsPage() {
       {profile?.couple_id && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">🚃 通勤先</CardTitle>
+            <CardTitle className="text-base flex items-center gap-1"><Train size={16} /> 通勤先</CardTitle>
             <CardDescription>
               職場の最寄り駅を設定すると、町ごとの通勤時間がわかります
             </CardDescription>
@@ -424,12 +425,12 @@ export default function SettingsPage() {
                           })
                           .eq("id", user!.id);
                         setSavingWorkplace(false);
-                        setMessage(`✅ 通勤先を「${s.n}駅」に設定しました`);
+                        setMessage(`通勤先を「${s.n}駅」に設定しました`);
                         setTimeout(() => window.location.reload(), 1000);
                       }}
                       className="w-full text-left px-4 py-4 bg-muted rounded-lg text-base flex justify-between items-center active:scale-[0.98] transition-transform"
                     >
-                      <span className="font-medium text-base">🚃 {s.n}駅</span>
+                      <span className="font-medium text-base inline-flex items-center gap-1"><Train size={16} /> {s.n}駅</span>
                       <span className="text-sm text-muted-foreground">{s.p}</span>
                     </button>
                   ))}
@@ -437,8 +438,8 @@ export default function SettingsPage() {
               )}
             </div>
             {profile?.workplace_station && (
-              <p className="text-xs text-primary">
-                ✅ {profile.workplace_station} に設定済み
+              <p className="text-xs text-primary inline-flex items-center gap-1">
+                <Check size={12} /> {profile.workplace_station} に設定済み
               </p>
             )}
             {partner?.workplace_station && (
@@ -456,8 +457,8 @@ export default function SettingsPage() {
       {/* LINE Bot */}
       <Card>
         <CardContent className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#06C755] rounded-full flex items-center justify-center text-white text-lg">
-            💬
+          <div className="w-10 h-10 bg-[#06C755] rounded-full flex items-center justify-center text-white">
+            <MessageCircle size={20} />
           </div>
           <div className="flex-1">
             <p className="font-medium text-sm">LINE Bot</p>

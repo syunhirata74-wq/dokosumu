@@ -11,6 +11,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Heart, Hand, Pin, RefreshCw, Sparkles, Coffee, Moon, TreePine, Baby, ShoppingBag, UtensilsCrossed, Train, Coins, ShieldCheck, Sunset } from "lucide-react";
+
+const SCORE_ICON_MAP: Record<string, React.ReactNode> = {
+  cafe: <Coffee size={18} />,
+  nightlife: <Sunset size={18} />,
+  quiet: <Moon size={18} />,
+  nature: <TreePine size={18} />,
+  family: <Baby size={18} />,
+  shopping: <ShoppingBag size={18} />,
+  gourmet: <UtensilsCrossed size={18} />,
+  access: <Train size={18} />,
+  cost: <Coins size={18} />,
+  safety: <ShieldCheck size={18} />,
+};
 
 export default function SwipeResultPage() {
   const router = useRouter();
@@ -34,29 +48,29 @@ export default function SwipeResultPage() {
 
   // Analyze preferences from liked towns
   function analyzePreferences(): {
-    topTraits: { key: string; label: string; icon: string; avg: number }[];
+    topTraits: { key: string; label: string; avg: number }[];
     coupleType: { icon: string; label: string };
     avgRent: number;
   } {
     if (liked.length === 0) {
       return {
         topTraits: [],
-        coupleType: { icon: "🤔", label: "まだわからない" },
+        coupleType: { icon: "", label: "まだわからない" },
         avgRent: 0,
       };
     }
 
-    const traitLabels: Record<string, { label: string; icon: string }> = {
-      cafe: { label: "おしゃれ度", icon: "☕" },
-      nightlife: { label: "夜の活気", icon: "🌃" },
-      quiet: { label: "静かさ", icon: "🌙" },
-      nature: { label: "自然", icon: "🌿" },
-      family: { label: "ファミリー", icon: "👶" },
-      shopping: { label: "買い物", icon: "🛍️" },
-      gourmet: { label: "グルメ", icon: "🍽️" },
-      access: { label: "アクセス", icon: "🚃" },
-      cost: { label: "コスパ", icon: "💰" },
-      safety: { label: "治安", icon: "🔒" },
+    const traitLabels: Record<string, { label: string }> = {
+      cafe: { label: "おしゃれ度" },
+      nightlife: { label: "夜の活気" },
+      quiet: { label: "静かさ" },
+      nature: { label: "自然" },
+      family: { label: "ファミリー" },
+      shopping: { label: "買い物" },
+      gourmet: { label: "グルメ" },
+      access: { label: "アクセス" },
+      cost: { label: "コスパ" },
+      safety: { label: "治安" },
     };
 
     // Average scores of liked towns
@@ -80,7 +94,6 @@ export default function SwipeResultPage() {
       .map(([key, avg]) => ({
         key,
         label: traitLabels[key]?.label ?? key,
-        icon: traitLabels[key]?.icon ?? "📊",
         avg: Math.round(avg * 10) / 10,
       }));
 
@@ -121,7 +134,7 @@ export default function SwipeResultPage() {
   if (loading) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="animate-pulse text-3xl">🔮</div>
+        <div className="animate-pulse"><Sparkles size={32} className="mx-auto text-primary" /></div>
       </div>
     );
   }
@@ -144,13 +157,13 @@ export default function SwipeResultPage() {
         <Card>
           <CardContent className="p-3 text-center">
             <div className="text-2xl font-bold text-emerald-500">{liked.length}</div>
-            <div className="text-[10px] text-muted-foreground">💗 住みたい</div>
+            <div className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5 justify-center"><Heart size={10} className="text-pink-500 fill-pink-500" /> 住みたい</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-3 text-center">
             <div className="text-2xl font-bold text-gray-400">{disliked.length}</div>
-            <div className="text-[10px] text-muted-foreground">👋 パス</div>
+            <div className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5 justify-center"><Hand size={10} /> パス</div>
           </CardContent>
         </Card>
         <Card>
@@ -169,8 +182,8 @@ export default function SwipeResultPage() {
             <div className="space-y-2">
               {topTraits.map((trait, i) => (
                 <div key={trait.key} className="flex items-center gap-3">
-                  <span className="text-xl">{["🥇", "🥈", "🥉"][i]}</span>
-                  <span className="text-lg">{trait.icon}</span>
+                  <span className="text-sm font-bold text-muted-foreground w-5">{i + 1}.</span>
+                  <span className="text-lg">{SCORE_ICON_MAP[trait.key]}</span>
                   <span className="font-medium text-sm flex-1">{trait.label}</span>
                   <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((s) => (
@@ -192,7 +205,7 @@ export default function SwipeResultPage() {
       {/* Liked towns */}
       {liked.length > 0 && (
         <>
-          <h2 className="font-bold text-sm">💗 住みたいと思った町</h2>
+          <h2 className="font-bold text-sm inline-flex items-center gap-1"><Heart size={16} className="text-pink-500 fill-pink-500" /> 住みたいと思った町</h2>
           <div className="space-y-2">
             {liked.map((town) => (
               <Card key={town.code}>
@@ -214,7 +227,7 @@ export default function SwipeResultPage() {
                       disabled={addingTown === town.code}
                       className="text-xs"
                     >
-                      📌 追加
+                      <span className="inline-flex items-center gap-1"><Pin size={12} /> 追加</span>
                     </Button>
                   </div>
                 </CardContent>
@@ -234,11 +247,11 @@ export default function SwipeResultPage() {
           variant="outline"
           className="w-full h-12"
         >
-          🔄 もう一度スワイプ
+          <span className="inline-flex items-center gap-1"><RefreshCw size={16} /> もう一度スワイプ</span>
         </Button>
         <Link href="/diagnosis">
           <Button variant="outline" className="w-full h-12">
-            🔮 診断トップへ
+            <span className="inline-flex items-center gap-1"><Sparkles size={16} /> 診断トップへ</span>
           </Button>
         </Link>
       </div>

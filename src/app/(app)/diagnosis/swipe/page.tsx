@@ -3,6 +3,20 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { TownProfile } from "@/lib/diagnosis";
+import { Heart, Hand, PartyPopper, Coffee, Sunset, Moon, TreePine, Baby, ShoppingBag, UtensilsCrossed, Train, Coins, ShieldCheck } from "lucide-react";
+
+const SCORE_ICON_MAP: Record<string, React.ReactNode> = {
+  cafe: <Coffee size={16} />,
+  nightlife: <Sunset size={16} />,
+  quiet: <Moon size={16} />,
+  nature: <TreePine size={16} />,
+  family: <Baby size={16} />,
+  shopping: <ShoppingBag size={16} />,
+  gourmet: <UtensilsCrossed size={16} />,
+  access: <Train size={16} />,
+  cost: <Coins size={16} />,
+  safety: <ShieldCheck size={16} />,
+};
 
 const TOTAL_CARDS = 15;
 
@@ -83,7 +97,7 @@ export default function SwipePage() {
   if (towns.length === 0) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="animate-pulse text-3xl">🃏</div>
+        <div className="animate-pulse text-3xl text-muted-foreground">...</div>
       </div>
     );
   }
@@ -92,7 +106,7 @@ export default function SwipePage() {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="text-5xl animate-bounce">🎉</div>
+          <div className="animate-bounce"><PartyPopper size={48} className="mx-auto text-primary" /></div>
           <p className="text-muted-foreground">結果を分析中...</p>
         </div>
       </div>
@@ -108,7 +122,7 @@ export default function SwipePage() {
       <div className="mb-4">
         <div className="flex justify-between text-xs text-muted-foreground mb-1">
           <span>{currentIndex + 1} / {towns.length}</span>
-          <span>💗 {liked.length} | 👋 {disliked.length}</span>
+          <span className="inline-flex items-center gap-1"><Heart size={12} className="text-pink-500 fill-pink-500" /> {liked.length} | <Hand size={12} /> {disliked.length}</span>
         </div>
         <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div
@@ -122,16 +136,16 @@ export default function SwipePage() {
       <div className="flex-1 flex items-center justify-center relative">
         {/* Swipe indicators */}
         <div
-          className="absolute left-4 top-1/2 -translate-y-1/2 text-4xl transition-opacity"
+          className="absolute left-4 top-1/2 -translate-y-1/2 transition-opacity"
           style={{ opacity: dragX < -30 ? Math.min(1, Math.abs(dragX) / 100) : 0 }}
         >
-          👋
+          <Hand size={36} />
         </div>
         <div
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-4xl transition-opacity"
+          className="absolute right-4 top-1/2 -translate-y-1/2 transition-opacity"
           style={{ opacity: dragX > 30 ? Math.min(1, dragX / 100) : 0 }}
         >
-          💗
+          <Heart size={36} className="text-pink-500 fill-pink-500" />
         </div>
 
         <div
@@ -188,14 +202,9 @@ export default function SwipePage() {
                 .sort(([, a], [, b]) => b - a)
                 .slice(0, 5)
                 .map(([key, val]) => {
-                  const icons: Record<string, string> = {
-                    cafe: "☕", nightlife: "🌃", quiet: "🌙", nature: "🌿",
-                    family: "👶", shopping: "🛍️", gourmet: "🍽️",
-                    access: "🚃", cost: "💰", safety: "🔒",
-                  };
                   return (
                     <div key={key}>
-                      <div className="text-base">{icons[key]}</div>
+                      <div className="flex justify-center">{SCORE_ICON_MAP[key]}</div>
                       <div className="text-[10px] text-muted-foreground">
                         {"★".repeat(val)}
                       </div>
@@ -211,15 +220,15 @@ export default function SwipePage() {
       <div className="flex justify-center gap-8 mt-6 mb-4">
         <button
           onClick={() => swipe("left")}
-          className="w-16 h-16 rounded-full border-2 border-gray-300 flex items-center justify-center text-2xl active:scale-90 transition-transform bg-white shadow-md"
+          className="w-16 h-16 rounded-full border-2 border-gray-300 flex items-center justify-center active:scale-90 transition-transform bg-white shadow-md"
         >
-          👋
+          <Hand size={28} />
         </button>
         <button
           onClick={() => swipe("right")}
-          className="w-16 h-16 rounded-full border-2 border-emerald-400 flex items-center justify-center text-2xl active:scale-90 transition-transform bg-white shadow-md"
+          className="w-16 h-16 rounded-full border-2 border-emerald-400 flex items-center justify-center active:scale-90 transition-transform bg-white shadow-md"
         >
-          💗
+          <Heart size={28} className="text-pink-500 fill-pink-500" />
         </button>
       </div>
       <p className="text-center text-xs text-muted-foreground">

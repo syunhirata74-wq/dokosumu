@@ -8,6 +8,7 @@ import { RATING_CATEGORIES } from "@/types/database";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Users, MessageCircle, Check, Sparkles, BarChart3, Home, Train, ShoppingCart, TreePine, UtensilsCrossed, Coins, Heart } from "lucide-react";
 import {
   Radar,
   RadarChart,
@@ -19,11 +20,22 @@ import {
 } from "recharts";
 
 type ValueProfile = {
+  key: string;
   label: string;
   icon: string;
   myScore: number;
   partnerScore: number;
   gap: number;
+};
+
+const RATING_ICON_MAP: Record<string, React.ReactNode> = {
+  living_env: <Home size={16} />,
+  transport: <Train size={16} />,
+  shopping: <ShoppingCart size={16} />,
+  nature: <TreePine size={16} />,
+  dining: <UtensilsCrossed size={16} />,
+  rent: <Coins size={16} />,
+  overall: <Heart size={16} />,
 };
 
 const TALK_PROMPTS: Record<string, string[]> = {
@@ -104,6 +116,7 @@ export default function ValuesPage() {
     const myScore = me ? getAvgByCategory(me.id, cat.key) : 3;
     const partnerScore = partner ? getAvgByCategory(partner.id, cat.key) : 3;
     return {
+      key: cat.key,
       label: cat.label,
       icon: cat.icon,
       myScore: Math.round(myScore * 10) / 10,
@@ -127,7 +140,7 @@ export default function ValuesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse text-2xl">💑</div>
+        <div className="animate-pulse"><Users size={28} /></div>
       </div>
     );
   }
@@ -142,7 +155,7 @@ export default function ValuesPage() {
       {!hasEnoughData ? (
         <Card>
           <CardContent className="p-6 text-center space-y-4">
-            <div className="text-4xl">📊</div>
+            <div><BarChart3 size={40} className="mx-auto text-muted-foreground" /></div>
             <p className="text-sm text-muted-foreground">
               町を2つ以上評価すると、二人の価値観マップが表示されます
             </p>
@@ -185,7 +198,7 @@ export default function ValuesPage() {
           {biggestGaps.length > 0 && (
             <div className="space-y-3">
               <h2 className="font-bold text-sm flex items-center gap-1">
-                💬 ここ、話し合ってみて！
+                <MessageCircle size={16} /> ここ、話し合ってみて！
               </h2>
               {biggestGaps.map((v) => {
                 const prompts = TALK_PROMPTS[v.label] ?? [];
@@ -195,7 +208,7 @@ export default function ValuesPage() {
                   <Card key={v.label} className="border-emerald-200">
                     <CardContent className="p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg">{v.icon}</span>
+                        <span className="text-lg">{RATING_ICON_MAP[v.key] ?? v.icon}</span>
                         <span className="font-bold text-sm">{v.label}</span>
                         <span className="text-xs bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full ml-auto">
                           ズレ {v.gap.toFixed(1)}
@@ -229,7 +242,7 @@ export default function ValuesPage() {
             <Card>
               <CardContent className="p-4">
                 <h2 className="font-bold text-sm mb-3 flex items-center gap-1">
-                  ✅ ここは意見が合ってる！
+                  <Check size={16} className="text-green-500" /> ここは意見が合ってる！
                 </h2>
                 <div className="flex flex-wrap gap-2">
                   {agreements.map((v) => (
@@ -237,7 +250,7 @@ export default function ValuesPage() {
                       key={v.label}
                       className="bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-xs font-medium"
                     >
-                      {v.icon} {v.label}
+                      <span className="inline-flex items-center gap-1">{RATING_ICON_MAP[v.key] ?? v.icon} {v.label}</span>
                     </span>
                   ))}
                 </div>
@@ -252,7 +265,7 @@ export default function ValuesPage() {
               <div className="space-y-2">
                 {values.map((v) => (
                   <div key={v.label} className="flex items-center gap-2 text-sm">
-                    <span className="w-5">{v.icon}</span>
+                    <span className="w-5">{RATING_ICON_MAP[v.key] ?? v.icon}</span>
                     <span className="flex-1 min-w-0 truncate text-xs">{v.label}</span>
                     <span className="w-8 text-right font-medium text-emerald-500">{v.myScore}</span>
                     <div className="w-16 h-2 bg-muted rounded-full overflow-hidden relative">
@@ -276,7 +289,7 @@ export default function ValuesPage() {
 
       <Link href="/diagnosis">
         <Button variant="outline" className="w-full">
-          🔮 診断をやり直す
+          <span className="inline-flex items-center gap-1"><Sparkles size={16} /> 診断をやり直す</span>
         </Button>
       </Link>
     </div>

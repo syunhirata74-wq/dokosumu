@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Check, Pin } from "lucide-react";
 
 type Station = { c: string; n: string; p: string };
 
@@ -93,7 +94,7 @@ export default function NewTownPage() {
                     : "border-border"
                 }`}
               >
-                <span className="text-lg">✅</span>
+                <Check size={20} />
                 行った町
               </button>
               <button
@@ -105,7 +106,7 @@ export default function NewTownPage() {
                     : "border-border"
                 }`}
               >
-                <span className="text-lg">📌</span>
+                <Pin size={20} />
                 行きたい町
               </button>
             </div>
@@ -144,8 +145,8 @@ export default function NewTownPage() {
                 )}
               </div>
               {selectedStation && (
-                <p className="text-xs text-primary">
-                  ✅ {selectedStation.n}駅（{selectedStation.p}）を選択中
+                <p className="text-xs text-primary inline-flex items-center gap-1">
+                  <Check size={12} /> {selectedStation.n}駅（{selectedStation.p}）を選択中
                 </p>
               )}
             </div>
