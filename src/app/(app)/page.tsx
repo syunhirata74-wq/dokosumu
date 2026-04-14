@@ -8,7 +8,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { X, Heart, MapPin, Coins, SlidersHorizontal, ChevronDown } from "lucide-react";
 
-const PREF_OPTIONS = ["全て", "東京都", "神奈川県", "埼玉県", "千葉県", "大阪府", "京都府", "兵庫県", "奈良県"];
+const PREF_OPTIONS = ["全て", "東京都", "神奈川県", "埼玉県", "千葉県"];
 const RENT_OPTIONS = [
   { label: "上限なし", value: Infinity },
   { label: "〜10万", value: 100000 },
