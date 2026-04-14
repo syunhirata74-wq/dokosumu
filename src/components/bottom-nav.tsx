@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Compass, Heart, Sparkles, User } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/", label: "発見", icon: "🃏" },
-  { href: "/matches", label: "マッチ", icon: "💗" },
-  { href: "/diagnosis", label: "診断", icon: "🔮" },
-  { href: "/profile", label: "プロフィール", icon: "👤" },
+  { href: "/", label: "発見", Icon: Compass },
+  { href: "/matches", label: "マッチ", Icon: Heart },
+  { href: "/diagnosis", label: "診断", Icon: Sparkles },
+  { href: "/profile", label: "プロフィール", Icon: User },
 ] as const;
 
 export function BottomNav() {
@@ -31,7 +32,12 @@ export function BottomNav() {
                   : "text-muted-foreground"
               }`}
             >
-              <span className="text-xl leading-none mb-0.5">{item.icon}</span>
+              <item.Icon
+                className="mb-0.5"
+                size={22}
+                strokeWidth={isActive ? 2.5 : 1.5}
+                fill={isActive && item.Icon === Heart ? "currentColor" : "none"}
+              />
               <span>{item.label}</span>
             </Link>
           );

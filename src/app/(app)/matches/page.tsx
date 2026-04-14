@@ -8,6 +8,7 @@ import type { Town, Rating } from "@/types/database";
 import { RATING_CATEGORIES } from "@/types/database";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Star, MapPin } from "lucide-react";
 
 type TownWithRatings = Town & { ratings: Rating[] };
 
@@ -61,7 +62,12 @@ export default function MatchesPage() {
 
   return (
     <div className="p-4 space-y-4 pb-20">
-      <h1 className="text-lg font-bold">💗 マッチ</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-bold">マッチ</h1>
+        <Link href="/towns/new" className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md active:scale-90 transition-transform">
+          <Plus size={20} />
+        </Link>
+      </div>
 
       <Tabs defaultValue="wishlist">
         <TabsList className="w-full">
