@@ -44,6 +44,18 @@ export default function DiagnosisPage() {
       </Card>
 
       <button
+        onClick={() => router.push("/diagnosis/swipe")}
+        className="w-full max-w-sm bg-white/80 rounded-xl p-4 flex items-center gap-3 active:scale-[0.98] transition-transform"
+      >
+        <span className="text-2xl">🃏</span>
+        <div className="text-left flex-1">
+          <p className="font-bold text-sm">町スワイプ</p>
+          <p className="text-xs text-muted-foreground">直感で「住みたい/パス」を選んで好みを分析</p>
+        </div>
+        <span className="text-muted-foreground">→</span>
+      </button>
+
+      <button
         onClick={() => router.push("/diagnosis/values")}
         className="w-full max-w-sm bg-white/80 rounded-xl p-4 flex items-center gap-3 active:scale-[0.98] transition-transform"
       >
