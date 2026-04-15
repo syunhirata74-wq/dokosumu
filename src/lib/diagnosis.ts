@@ -20,6 +20,18 @@ export type FacilityCounts = {
   gourmet?: number;
 };
 
+export type RentRange = {
+  "1LDK"?: number; // yen
+  "2LDK"?: number;
+  "3LDK"?: number;
+};
+
+export type CommuteHubs = {
+  "東京"?: number; // minutes
+  "渋谷"?: number;
+  "新宿"?: number;
+};
+
 export type TownProfile = {
   code: string;
   name: string;
@@ -28,10 +40,16 @@ export type TownProfile = {
   scores: Record<ScoreKey, number>;
   rent2ldk: number;
   description: string;
+  imageUrl?: string;
   // Objective facts (optional for backward compatibility)
   facilities?: FacilityCounts;
   lines?: number;
+  lineNames?: string[]; // e.g. ["東急田園都市線", "東急世田谷線"]
   rentAvg2LDK?: number;
+  rentRange?: RentRange;
+  commuteHubs?: CommuteHubs;
+  topSpots?: string[]; // 代表的なスポット（Google Places 高評価）
+  photos?: string[]; // 複数枚の写真URL
 };
 
 export type QuestionOption = {

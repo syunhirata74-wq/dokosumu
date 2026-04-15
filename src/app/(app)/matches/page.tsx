@@ -52,7 +52,7 @@ function LikeBadge({
     return (
       <div className="flex items-center gap-1 bg-pink-100 text-pink-700 text-[10px] font-medium px-2 py-1 rounded-full shrink-0">
         <MiniAvatar profile={partner} size={18} />
-        <span>{partner.name}のLIKE</span>
+        <span>{partner.name}が行ってみたい</span>
       </div>
     );
   }
@@ -60,7 +60,7 @@ function LikeBadge({
     return (
       <div className="flex items-center gap-1 bg-muted text-muted-foreground text-[10px] font-medium px-2 py-1 rounded-full shrink-0">
         <MiniAvatar profile={me} size={18} />
-        <span>あなたのLIKE</span>
+        <span>あなたが行ってみたい</span>
       </div>
     );
   }
@@ -193,7 +193,7 @@ export default function MatchesPage() {
               <Compass size={40} className="mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground text-sm mb-4">まだ候補がありません</p>
               <Link href="/" className="inline-block px-6 py-3 bg-primary text-primary-foreground rounded-full font-medium text-sm">
-                町を発見しに行く
+                町を探しに行く
               </Link>
             </div>
           ) : (

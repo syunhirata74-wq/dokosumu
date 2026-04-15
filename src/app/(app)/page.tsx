@@ -7,7 +7,14 @@ import type { TownProfile } from "@/lib/diagnosis";
 import type { Profile } from "@/types/database";
 import Link from "next/link";
 import { toast } from "sonner";
-import { X, Heart, MapPin, Coins, SlidersHorizontal, Coffee, ShoppingBasket, Trees, Utensils, TrainFront, Hospital } from "lucide-react";
+import { X, Heart, MapPin, Coins, SlidersHorizontal, Coffee, ShoppingBasket, Trees, Utensils, TrainFront, Hospital, Clock, ChevronUp, Sparkles } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const PREF_OPTIONS = ["全て", "東京都", "神奈川県", "埼玉県", "千葉県"];
 const RENT_OPTIONS = [
@@ -74,6 +81,164 @@ function Fact({
   );
 }
 
+function MetricCell({
+  Icon,
+  value,
+  label,
+}: {
+  Icon: React.ComponentType<{ size?: number; className?: string }>;
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="flex flex-col items-center bg-muted/40 rounded-xl py-2.5 px-1">
+      <Icon size={16} className="text-primary mb-1" />
+      <div className="text-sm font-bold leading-tight">{value}</div>
+      <div className="text-[10px] text-muted-foreground mt-0.5">{label}</div>
+    </div>
+  );
+}
+
+function DetailSheetBody({
+  town,
+  commuteToWork,
+  workplace,
+}: {
+  town: TownProfile & { imageUrl?: string };
+  commuteToWork: number | null;
+  workplace: string | null;
+}) {
+  const photos = town.photos && town.photos.length > 0 ? town.photos : town.imageUrl ? [town.imageUrl] : [];
+  return (
+    <div className="flex flex-col">
+      {/* Header with first photo */}
+      {photos[0] && (
+        <div className="relative -mt-4 -mx-0 h-48 overflow-hidden rounded-t-2xl">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photos[0]} alt={town.name} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+          <div className="absolute bottom-3 left-4 text-white">
+            <h2 className="text-xl font-bold">{town.name}</h2>
+            <p className="text-xs opacity-90">{town.pref}</p>
+          </div>
+        </div>
+      )}
+
+      <SheetHeader className="pt-3">
+        <SheetTitle className="sr-only">{town.name}の詳細</SheetTitle>
+        <p className="text-sm text-muted-foreground">{town.description}</p>
+      </SheetHeader>
+
+      <div className="px-4 pb-8 space-y-5">
+        {/* Additional photos */}
+        {photos.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto -mx-4 px-4 scrollbar-hide">
+            {photos.slice(1).map((p, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={i} src={p} alt="" className="h-24 w-32 object-cover rounded-lg shrink-0" />
+            ))}
+          </div>
+        )}
+
+        {/* Commute to workplace */}
+        {commuteToWork !== null && workplace && (
+          <section>
+            <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+              <Clock size={12} /> 通勤時間
+            </h3>
+            <div className="bg-primary/5 rounded-lg p-3 flex items-center justify-between">
+              <span className="text-sm">{workplace} まで</span>
+              <span className="text-lg font-bold text-primary">{commuteToWork}分</span>
+            </div>
+          </section>
+        )}
+
+        {/* Major hub commutes */}
+        {town.commuteHubs && (
+          <section>
+            <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+              <TrainFront size={12} /> 主要駅までの所要時間
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {(["渋谷", "新宿", "東京"] as const).map((hub) =>
+                town.commuteHubs?.[hub] !== undefined ? (
+                  <div key={hub} className="bg-muted/40 rounded-lg p-2 text-center">
+                    <div className="text-xs text-muted-foreground">{hub}</div>
+                    <div className="text-base font-bold">{town.commuteHubs[hub]}分</div>
+                  </div>
+                ) : null
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Rent range */}
+        {town.rentRange && (
+          <section>
+            <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+              <Coins size={12} /> 家賃相場（賃貸マンション）
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {(["1LDK", "2LDK", "3LDK"] as const).map((madori) =>
+                town.rentRange?.[madori] !== undefined ? (
+                  <div key={madori} className="bg-muted/40 rounded-lg p-2 text-center">
+                    <div className="text-xs text-muted-foreground">{madori}</div>
+                    <div className="text-base font-bold">
+                      {(town.rentRange[madori]! / 10000).toFixed(0)}万
+                    </div>
+                  </div>
+                ) : null
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Rail lines */}
+        {town.lineNames && town.lineNames.length > 0 && (
+          <section>
+            <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+              <TrainFront size={12} /> 路線（{town.lineNames.length}本）
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              {town.lineNames.map((l) => (
+                <span key={l} className="bg-muted text-xs px-2.5 py-1 rounded-full">{l}</span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Top spots */}
+        {town.topSpots && town.topSpots.length > 0 && (
+          <section>
+            <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+              <Sparkles size={12} /> 代表スポット
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              {town.topSpots.map((s) => (
+                <span key={s} className="bg-primary/10 text-primary text-xs px-2.5 py-1 rounded-full">{s}</span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Facility counts */}
+        {town.facilities && (
+          <section>
+            <h3 className="text-xs font-semibold text-muted-foreground mb-2">周辺データ</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {town.facilities.cafe !== undefined && <Fact Icon={Coffee} label="カフェ" value={town.facilities.cafe} unit="件" />}
+              {town.facilities.gourmet !== undefined && <Fact Icon={Utensils} label="グルメ" value={town.facilities.gourmet} unit="件" />}
+              {town.facilities.supermarket !== undefined && <Fact Icon={ShoppingBasket} label="スーパー" value={town.facilities.supermarket} unit="件" />}
+              {town.facilities.park !== undefined && <Fact Icon={Trees} label="公園" value={town.facilities.park} unit="個" />}
+              {town.facilities.hospital !== undefined && <Fact Icon={Hospital} label="病院" value={town.facilities.hospital} unit="件" />}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const { user, profile } = useAuth();
   const [allTowns, setAllTowns] = useState<TownProfile[]>([]);
@@ -90,6 +255,9 @@ export default function HomePage() {
   const [partner, setPartner] = useState<Profile | null>(null);
   const [partnerLikes, setPartnerLikes] = useState<Set<string>>(new Set());
   const [mySwiped, setMySwiped] = useState<Set<string>>(new Set());
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [commuteToWork, setCommuteToWork] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/town-profiles.json")
@@ -157,6 +325,37 @@ export default function HomePage() {
     setCurrentIndex(0);
     setLikedCount(0);
   }, [prefFilter, rentLimit, ambiance]);
+
+  // Reset photo carousel whenever we advance to a new town
+  useEffect(() => {
+    setPhotoIndex(0);
+    setCommuteToWork(null);
+  }, [currentIndex]);
+
+  // Fetch commute from workplace → current town (session cache)
+  useEffect(() => {
+    const currentCode = filteredTowns[currentIndex]?.code;
+    const currentName = filteredTowns[currentIndex]?.name;
+    if (!profile?.workplace_station || !currentCode || !currentName) return;
+    const cacheKey = `commute:${profile.workplace_station}:${currentCode}`;
+    const cached = typeof sessionStorage !== "undefined" ? sessionStorage.getItem(cacheKey) : null;
+    if (cached) {
+      setCommuteToWork(parseInt(cached));
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/commute?from=${encodeURIComponent(profile.workplace_station)}&to=${encodeURIComponent(currentName)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data.minutes) {
+          setCommuteToWork(data.minutes);
+          sessionStorage.setItem(cacheKey, String(data.minutes));
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [currentIndex, filteredTowns, profile?.workplace_station]);
 
   if (!profile?.couple_id) {
     return (
@@ -227,7 +426,7 @@ export default function HomePage() {
       setLikedCount((c) => c + 1);
 
       if (partnerAlreadyLiked) {
-        toast.success(`🎉 ${currentTown.name} でふたりともLIKE！`);
+        toast.success(`🎉 ${currentTown.name} でふたりとも行ってみたい！`);
       } else {
         toast.success(`${currentTown.name} を候補に追加`);
       }
@@ -252,7 +451,7 @@ export default function HomePage() {
     <div className="min-h-[80vh] flex flex-col p-4 max-w-sm mx-auto">
       {/* Header with filter */}
       <div className="flex items-center justify-between mb-3">
-        <h1 className="text-lg font-bold">発見</h1>
+        <h1 className="text-lg font-bold">町を探す</h1>
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground flex items-center gap-1">
             <Heart size={12} fill="currentColor" className="text-primary" /> {likedCount}
@@ -351,10 +550,10 @@ export default function HomePage() {
       {currentTown && !isComplete && !noResults && (
         <>
           <div className="flex-1 flex items-center justify-center relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/90 rounded-full px-4 py-2 font-bold text-gray-400 border-2 border-gray-300 transition-opacity"
-              style={{ opacity: dragX < -30 ? Math.min(1, Math.abs(dragX) / 100) : 0 }}>NOPE</div>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/90 rounded-full px-4 py-2 font-bold text-primary border-2 border-primary transition-opacity"
-              style={{ opacity: dragX > 30 ? Math.min(1, dragX / 100) : 0 }}>LIKE</div>
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/90 rounded-full px-3 py-2 text-sm font-semibold text-gray-400 border-2 border-gray-300 transition-opacity"
+              style={{ opacity: dragX < -30 ? Math.min(1, Math.abs(dragX) / 100) : 0 }}>後でいいかも</div>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/90 rounded-full px-3 py-2 text-sm font-semibold text-primary border-2 border-primary transition-opacity"
+              style={{ opacity: dragX > 30 ? Math.min(1, dragX / 100) : 0 }}>行ってみたい</div>
 
             <div
               className={`w-full rounded-2xl shadow-xl overflow-hidden bg-card transition-all ${
@@ -365,82 +564,105 @@ export default function HomePage() {
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
             >
-              {/* Photo */}
-              <div className="relative h-56 bg-gradient-to-br from-emerald-200 to-emerald-100">
-                {currentTown.imageUrl && (
-                  <img src={currentTown.imageUrl} alt={currentTown.name} className="w-full h-full object-cover" loading="eager" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-                {/* Partner-already-LIKED badge (LINE avatar) */}
-                {partner && partnerLikes.has(currentTown.code) && (
-                  <div className="absolute top-3 right-3 z-20 bg-white/95 backdrop-blur rounded-full pl-1 pr-3 py-1 flex items-center gap-1.5 shadow-lg">
-                    {partner.avatar_url ? (
+              {/* Photo slider */}
+              {(() => {
+                const photoList = currentTown.photos && currentTown.photos.length > 0
+                  ? currentTown.photos
+                  : currentTown.imageUrl
+                  ? [currentTown.imageUrl]
+                  : [];
+                const active = photoList[photoIndex] ?? photoList[0];
+                return (
+                  <div className="relative h-64 bg-gradient-to-br from-emerald-200 to-emerald-100">
+                    {active && (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={partner.avatar_url} alt={partner.name} className="w-6 h-6 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
-                        {partner.name?.charAt(0)}
+                      <img src={active} alt={currentTown.name} className="w-full h-full object-cover" loading="eager" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+
+                    {/* Photo dots */}
+                    {photoList.length > 1 && (
+                      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+                        {photoList.map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={(e) => { e.stopPropagation(); setPhotoIndex(i); }}
+                            className={`h-1 rounded-full transition-all ${i === photoIndex ? "w-6 bg-white" : "w-1.5 bg-white/50"}`}
+                            aria-label={`Photo ${i + 1}`}
+                          />
+                        ))}
                       </div>
                     )}
-                    <span className="text-xs font-medium text-gray-800">もLIKEしてる</span>
-                  </div>
-                )}
 
-                <div className="absolute bottom-4 left-4 text-white">
-                  <h2 className="text-2xl font-bold drop-shadow-lg">{currentTown.name}</h2>
-                  <div className="flex items-center gap-1 text-sm opacity-90">
-                    <MapPin size={14} />
-                    <span>{currentTown.pref}</span>
-                  </div>
-                </div>
-              </div>
+                    {/* Partner-already-LIKED badge */}
+                    {partner && partnerLikes.has(currentTown.code) && (
+                      <div className="absolute top-3 right-3 z-20 bg-white/95 backdrop-blur rounded-full pl-1 pr-3 py-1 flex items-center gap-1.5 shadow-lg">
+                        {partner.avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={partner.avatar_url} alt={partner.name} className="w-6 h-6 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
+                            {partner.name?.charAt(0)}
+                          </div>
+                        )}
+                        <span className="text-xs font-medium text-gray-800">も行ってみたい</span>
+                      </div>
+                    )}
 
-              {/* Info */}
+                    <div className="absolute bottom-4 left-4 right-4 text-white">
+                      <h2 className="text-2xl font-bold drop-shadow-lg leading-tight">{currentTown.name}</h2>
+                      <div className="flex items-center gap-1 text-sm opacity-90 mt-0.5">
+                        <MapPin size={14} />
+                        <span>{currentTown.pref}</span>
+                        {currentTown.lineNames && currentTown.lineNames.length > 0 && (
+                          <span className="opacity-70">・{currentTown.lineNames.slice(0, 2).join("・")}{currentTown.lineNames.length > 2 ? " ほか" : ""}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Summary info */}
               <div className="p-4 space-y-3">
-                <p className="text-sm text-muted-foreground">{currentTown.description}</p>
+                <p className="text-sm text-muted-foreground line-clamp-2">{currentTown.description}</p>
 
-                {/* Fact block — objective counts */}
-                {(currentTown.facilities || currentTown.lines || currentTown.rentAvg2LDK) && (
-                  <div className="grid grid-cols-3 gap-x-2 gap-y-2 bg-muted/40 rounded-lg p-3">
-                    {currentTown.facilities?.cafe !== undefined && (
-                      <Fact Icon={Coffee} label="カフェ" value={currentTown.facilities.cafe} unit="件" />
-                    )}
-                    {currentTown.facilities?.gourmet !== undefined && (
-                      <Fact Icon={Utensils} label="グルメ" value={currentTown.facilities.gourmet} unit="件" />
-                    )}
-                    {currentTown.facilities?.supermarket !== undefined && (
-                      <Fact Icon={ShoppingBasket} label="スーパー" value={currentTown.facilities.supermarket} unit="件" />
-                    )}
-                    {currentTown.facilities?.park !== undefined && (
-                      <Fact Icon={Trees} label="公園" value={currentTown.facilities.park} unit="個" />
-                    )}
-                    {currentTown.facilities?.hospital !== undefined && (
-                      <Fact Icon={Hospital} label="病院" value={currentTown.facilities.hospital} unit="件" />
-                    )}
-                    {currentTown.lines !== undefined && (
-                      <Fact Icon={TrainFront} label="路線" value={currentTown.lines} unit="本" />
-                    )}
-                  </div>
-                )}
-
-                {/* Rent — prefer real average if present, else fallback */}
-                <div className="flex items-center gap-2">
-                  <Coins size={14} className="text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    2LDK {((currentTown.rentAvg2LDK ?? currentTown.rent2ldk) / 10000).toFixed(0)}万円
-                    {currentTown.rentAvg2LDK !== undefined && (
-                      <span className="text-xs text-muted-foreground ml-1">（相場平均）</span>
-                    )}
-                  </span>
+                {/* Three-metric summary */}
+                <div className="grid grid-cols-3 gap-2">
+                  <MetricCell
+                    Icon={Clock}
+                    value={commuteToWork ? `${commuteToWork}分` : currentTown.commuteHubs?.["渋谷"] ? `渋谷${currentTown.commuteHubs["渋谷"]}分` : "—"}
+                    label={commuteToWork ? "通勤" : "渋谷まで"}
+                  />
+                  <MetricCell
+                    Icon={Coins}
+                    value={`${Math.round((currentTown.rentAvg2LDK ?? currentTown.rent2ldk) / 10000)}万`}
+                    label="2LDK家賃"
+                  />
+                  <MetricCell
+                    Icon={TrainFront}
+                    value={currentTown.lines ? `${currentTown.lines}本` : "—"}
+                    label="路線"
+                  />
                 </div>
 
-                {/* Tags — kept for personality but reduced */}
-                <div className="flex flex-wrap gap-1.5">
-                  {currentTown.tags.slice(0, 2).map((tag) => (
-                    <span key={tag} className="bg-muted text-xs px-2.5 py-1 rounded-full">{tag}</span>
-                  ))}
-                </div>
+                {/* Detail sheet trigger */}
+                <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
+                  <SheetTrigger
+                    render={
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full flex items-center justify-center gap-1 py-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <ChevronUp size={14} />
+                        詳細を見る
+                      </button>
+                    }
+                  />
+                  <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
+                    <DetailSheetBody town={currentTown} commuteToWork={commuteToWork} workplace={profile?.workplace_station ?? null} />
+                  </SheetContent>
+                </Sheet>
               </div>
             </div>
           </div>

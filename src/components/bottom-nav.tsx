@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Compass, Heart, Sparkles, User } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/", label: "発見", Icon: Compass },
+  { href: "/", label: "町を探す", Icon: Compass },
   { href: "/matches", label: "候補", Icon: Heart },
   { href: "/diagnosis", label: "診断", Icon: Sparkles },
   { href: "/profile", label: "プロフィール", Icon: User },
