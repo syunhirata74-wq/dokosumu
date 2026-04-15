@@ -15,12 +15,35 @@ import {
 } from "@/components/ui/dialog";
 
 const PREF_OPTIONS = ["全て", "東京都", "神奈川県", "埼玉県", "千葉県"];
-const RENT_OPTIONS = [
-  { label: "上限なし", value: Infinity },
-  { label: "〜10万", value: 100000 },
-  { label: "〜15万", value: 150000 },
-  { label: "〜20万", value: 200000 },
-  { label: "〜25万", value: 250000 },
+
+type Madori = "1LDK" | "2LDK" | "3LDK";
+const RENT_OPTIONS_BY_MADORI: Record<Madori, { label: string; value: number }[]> = {
+  "1LDK": [
+    { label: "上限なし", value: Infinity },
+    { label: "〜10万", value: 100000 },
+    { label: "〜15万", value: 150000 },
+    { label: "〜20万", value: 200000 },
+  ],
+  "2LDK": [
+    { label: "上限なし", value: Infinity },
+    { label: "〜15万", value: 150000 },
+    { label: "〜20万", value: 200000 },
+    { label: "〜25万", value: 250000 },
+    { label: "〜30万", value: 300000 },
+  ],
+  "3LDK": [
+    { label: "上限なし", value: Infinity },
+    { label: "〜20万", value: 200000 },
+    { label: "〜30万", value: 300000 },
+    { label: "〜40万", value: 400000 },
+  ],
+};
+
+const COMMUTE_OPTIONS = [
+  { label: "指定なし", value: null as number | null },
+  { label: "〜30分", value: 30 },
+  { label: "〜45分", value: 45 },
+  { label: "〜60分", value: 60 },
 ];
 
 type Ambiance = "all" | "cafe" | "green" | "quiet" | "lively";
@@ -341,8 +364,15 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [prefFilter, setPrefFilter] = useState("全て");
-  const [rentLimit, setRentLimit] = useState(Infinity);
+  const [rentLimits, setRentLimits] = useState<Record<Madori, number>>({
+    "1LDK": Infinity,
+    "2LDK": Infinity,
+    "3LDK": Infinity,
+  });
   const [ambiance, setAmbiance] = useState<Ambiance>("all");
+  const [commuteLimit, setCommuteLimit] = useState<number | null>(null);
+  const [selectedLines, setSelectedLines] = useState<Set<string>>(new Set());
+  const [commuteMap, setCommuteMap] = useState<Record<string, number>>({});
   const [partner, setPartner] = useState<Profile | null>(null);
   const [partnerLikes, setPartnerLikes] = useState<Set<string>>(new Set());
   const [mySwiped, setMySwiped] = useState<Set<string>>(new Set());
@@ -401,27 +431,88 @@ export default function HomePage() {
   // Deterministic hash so the same couple sees the same order across reloads.
   // Mixes station code with user id so couples don't all see stations in the same order.
   const seed = user?.id ?? "";
+  // Collect unique line names present in the data (for the 路線 filter)
+  const knownLines = useMemo(() => {
+    const s = new Set<string>();
+    for (const t of allTowns) {
+      if (t.lineNames) t.lineNames.forEach((l) => s.add(l));
+    }
+    return [...s].sort();
+  }, [allTowns]);
+
   const filteredTowns = useMemo(() => {
     let result = allTowns;
+
+    // 都道府県
     if (prefFilter !== "全て") result = result.filter((t) => t.pref === prefFilter);
-    if (rentLimit !== Infinity) result = result.filter((t) => t.rent2ldk <= rentLimit);
+
+    // 間取り別 家賃上限（rentRange があればそれ、なければ rent2ldk を 2LDK として扱う）
+    result = result.filter((t) => {
+      for (const madori of ["1LDK", "2LDK", "3LDK"] as Madori[]) {
+        const limit = rentLimits[madori];
+        if (limit === Infinity) continue;
+        const value =
+          t.rentRange?.[madori] ??
+          (madori === "2LDK" ? (t.rentAvg2LDK ?? t.rent2ldk) : undefined);
+        // If we don't have the data for this madori, skip the check (don't filter out)
+        if (value !== undefined && value > limit) return false;
+      }
+      return true;
+    });
+
+    // 路線（指定があれば、町の lineNames と重複する場合のみ残す。lineNames 無しは対象外）
+    if (selectedLines.size > 0) {
+      result = result.filter((t) => {
+        if (!t.lineNames) return false;
+        return t.lineNames.some((l) => selectedLines.has(l));
+      });
+    }
+
+    // 通勤時間（勤務駅からの commute、既に取得済のキャッシュのみ対象）
+    if (commuteLimit !== null) {
+      result = result.filter((t) => {
+        const mins = commuteMap[t.code];
+        if (mins === undefined) return true; // 未計測は通す（徐々にキャッシュ貯まる）
+        return mins <= commuteLimit;
+      });
+    }
+
+    // 雰囲気
     if (ambiance !== "all") result = result.filter((t) => matchesAmbiance(t, ambiance));
-    // Exclude stations the current user has already swiped (either direction)
+
+    // スワイプ済み除外
     result = result.filter((t) => !mySwiped.has(t.code));
+
     return [...result].sort((a, b) => stableHash(a.code + seed) - stableHash(b.code + seed));
-  }, [allTowns, prefFilter, rentLimit, ambiance, seed, mySwiped]);
+  }, [allTowns, prefFilter, rentLimits, selectedLines, commuteLimit, commuteMap, ambiance, seed, mySwiped]);
 
   // Reset index when filters change
   useEffect(() => {
     setCurrentIndex(0);
     setLikedCount(0);
-  }, [prefFilter, rentLimit, ambiance]);
+  }, [prefFilter, rentLimits, ambiance, commuteLimit, selectedLines]);
 
   // Reset photo carousel whenever we advance to a new town
   useEffect(() => {
     setPhotoIndex(0);
     setCommuteToWork(null);
   }, [currentIndex]);
+
+  // Restore commuteMap from sessionStorage cache on mount
+  useEffect(() => {
+    if (typeof sessionStorage === "undefined" || !profile?.workplace_station) return;
+    const prefix = `commute:${profile.workplace_station}:`;
+    const map: Record<string, number> = {};
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key?.startsWith(prefix)) {
+        const code = key.slice(prefix.length);
+        const val = parseInt(sessionStorage.getItem(key) ?? "");
+        if (!isNaN(val)) map[code] = val;
+      }
+    }
+    setCommuteMap(map);
+  }, [profile?.workplace_station]);
 
   // Fetch commute from workplace → current town (session cache)
   useEffect(() => {
@@ -442,6 +533,7 @@ export default function HomePage() {
         if (data.minutes) {
           setCommuteToWork(data.minutes);
           sessionStorage.setItem(cacheKey, String(data.minutes));
+          setCommuteMap((prev) => ({ ...prev, [currentCode]: data.minutes }));
         }
       })
       .catch(() => {});
@@ -556,43 +648,117 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters — sectioned */}
       {showFilters && (
-        <div className="bg-card rounded-xl border p-3 mb-3 space-y-3">
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">エリア</label>
-            <div className="flex flex-wrap gap-1.5">
-              {PREF_OPTIONS.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPrefFilter(p)}
-                  className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
-                    prefFilter === p ? "bg-primary text-primary-foreground" : "bg-muted"
-                  }`}
-                >
-                  {p === "全て" ? "全て" : p.replace(/[都府県]$/, "")}
-                </button>
-              ))}
+        <div className="bg-card rounded-xl border p-3 mb-3 space-y-4">
+          {/* 📍 場所 */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-semibold flex items-center gap-1">📍 場所</h3>
+            <div>
+              <label className="text-[11px] text-muted-foreground mb-1 block">エリア</label>
+              <div className="flex flex-wrap gap-1.5">
+                {PREF_OPTIONS.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPrefFilter(p)}
+                    className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
+                      prefFilter === p ? "bg-primary text-primary-foreground" : "bg-muted"
+                    }`}
+                  >
+                    {p === "全て" ? "全て" : p.replace(/[都府県]$/, "")}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">家賃上限（2LDK）</label>
-            <div className="flex flex-wrap gap-1.5">
-              {RENT_OPTIONS.map((r) => (
-                <button
-                  key={r.label}
-                  onClick={() => setRentLimit(r.value)}
-                  className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
-                    rentLimit === r.value ? "bg-primary text-primary-foreground" : "bg-muted"
-                  }`}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">雰囲気</label>
+
+            {profile?.workplace_station && (
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block">
+                  通勤時間（{profile.workplace_station}駅まで）
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {COMMUTE_OPTIONS.map((o) => (
+                    <button
+                      key={o.label}
+                      onClick={() => setCommuteLimit(o.value)}
+                      className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
+                        commuteLimit === o.value ? "bg-primary text-primary-foreground" : "bg-muted"
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+                {commuteLimit !== null && Object.keys(commuteMap).length < 5 && (
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    ※ スワイプして表示した町から順に通勤時間を取得します
+                  </p>
+                )}
+              </div>
+            )}
+
+            {knownLines.length > 0 && (
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block">
+                  路線（{selectedLines.size > 0 ? `${selectedLines.size}件選択中` : "絞り込みなし"}）
+                </label>
+                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                  {knownLines.map((l) => {
+                    const active = selectedLines.has(l);
+                    return (
+                      <button
+                        key={l}
+                        onClick={() => {
+                          setSelectedLines((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(l)) next.delete(l);
+                            else next.add(l);
+                            return next;
+                          });
+                        }}
+                        className={`px-2.5 py-1 rounded-full text-[11px] transition-colors ${
+                          active ? "bg-primary text-primary-foreground" : "bg-muted"
+                        }`}
+                      >
+                        {l}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </section>
+
+          <div className="h-px bg-border" />
+
+          {/* 💰 予算（間取り別） */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-semibold">💰 予算（家賃上限）</h3>
+            {(Object.keys(RENT_OPTIONS_BY_MADORI) as Madori[]).map((madori) => (
+              <div key={madori}>
+                <label className="text-[11px] text-muted-foreground mb-1 block">{madori}</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {RENT_OPTIONS_BY_MADORI[madori].map((r) => (
+                    <button
+                      key={r.label}
+                      onClick={() => setRentLimits((prev) => ({ ...prev, [madori]: r.value }))}
+                      className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
+                        rentLimits[madori] === r.value ? "bg-primary text-primary-foreground" : "bg-muted"
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </section>
+
+          <div className="h-px bg-border" />
+
+          {/* 🏙 雰囲気 */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-semibold">🏙 雰囲気</h3>
             <div className="flex flex-wrap gap-1.5">
               {AMBIANCE_OPTIONS.map((a) => (
                 <button
@@ -606,8 +772,9 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
-          </div>
-          <p className="text-[10px] text-muted-foreground text-center">
+          </section>
+
+          <p className="text-[10px] text-muted-foreground text-center pt-1">
             {filteredTowns.length}件の町がヒット
           </p>
         </div>
@@ -618,7 +785,16 @@ export default function HomePage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-3">
             <p className="text-muted-foreground text-sm">条件に合う町がありません</p>
-            <button onClick={() => { setPrefFilter("全て"); setRentLimit(Infinity); setAmbiance("all"); }} className="text-primary text-sm underline">
+            <button
+              onClick={() => {
+                setPrefFilter("全て");
+                setRentLimits({ "1LDK": Infinity, "2LDK": Infinity, "3LDK": Infinity });
+                setAmbiance("all");
+                setCommuteLimit(null);
+                setSelectedLines(new Set());
+              }}
+              className="text-primary text-sm underline"
+            >
               フィルターをリセット
             </button>
           </div>
