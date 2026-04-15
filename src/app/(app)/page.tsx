@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { TownProfile } from "@/lib/diagnosis";
@@ -9,11 +9,10 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { X, Heart, MapPin, Coins, SlidersHorizontal, Coffee, ShoppingBasket, Trees, Utensils, TrainFront, Hospital, Clock, ChevronUp, Sparkles } from "lucide-react";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const PREF_OPTIONS = ["全て", "東京都", "神奈川県", "埼玉県", "千葉県"];
 const RENT_OPTIONS = [
@@ -98,44 +97,101 @@ function MetricCell({
   );
 }
 
-function DetailSheetBody({
+function DetailDialogBody({
   town,
   commuteToWork,
   workplace,
+  onClose,
+  onDecide,
 }: {
   town: TownProfile & { imageUrl?: string };
   commuteToWork: number | null;
   workplace: string | null;
+  onClose: () => void;
+  onDecide: (direction: "left" | "right") => void;
 }) {
   const photos = town.photos && town.photos.length > 0 ? town.photos : town.imageUrl ? [town.imageUrl] : [];
-  // Skip photos[0] since that's already shown on the card behind the sheet
-  const additionalPhotos = photos.slice(1);
+  const [heroPhoto, setHeroPhoto] = useState(0);
+  const [pullY, setPullY] = useState(0);
+  const [pullStart, setPullStart] = useState<number | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Swipe-down-to-close: only engages when content is scrolled to top
+  function handleTouchStart(e: React.TouchEvent) {
+    if (scrollRef.current && scrollRef.current.scrollTop <= 0) {
+      setPullStart(e.touches[0].clientY);
+    }
+  }
+  function handleTouchMove(e: React.TouchEvent) {
+    if (pullStart === null) return;
+    const dy = e.touches[0].clientY - pullStart;
+    if (dy > 0) setPullY(dy);
+  }
+  function handleTouchEnd() {
+    if (pullY > 120) onClose();
+    setPullY(0);
+    setPullStart(null);
+  }
+
   return (
-    <div className="flex flex-col">
-      {/* Drag-indicator handle */}
-      <div className="flex justify-center pt-2 pb-1">
-        <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+    <div
+      className="flex flex-col h-full bg-background transition-transform"
+      style={{ transform: pullY > 0 ? `translateY(${Math.min(pullY, 300)}px)` : undefined }}
+    >
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 flex items-center justify-between px-2 h-14 bg-background/95 backdrop-blur border-b">
+        <button
+          onClick={onClose}
+          aria-label="閉じる"
+          className="w-12 h-12 flex items-center justify-center rounded-full active:bg-muted transition-colors"
+        >
+          <X size={24} />
+        </button>
+        <DialogTitle className="text-base font-semibold">{town.name}</DialogTitle>
+        <div className="w-12 h-12" /> {/* spacer for symmetry */}
       </div>
 
-      <SheetHeader className="pt-1 pb-2">
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-xl font-bold">{town.name}</h2>
-          <span className="text-xs text-muted-foreground shrink-0">{town.pref}</span>
-        </div>
-        <SheetTitle className="sr-only">{town.name}の詳細</SheetTitle>
-        <p className="text-sm text-muted-foreground mt-1">{town.description}</p>
-      </SheetHeader>
-
-      <div className="px-4 pb-8 space-y-5">
-        {/* Additional photos (exclude the one already on the card) */}
-        {additionalPhotos.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto -mx-4 px-4 scrollbar-hide">
-            {additionalPhotos.map((p, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img key={i} src={p} alt="" className="h-28 w-36 object-cover rounded-lg shrink-0" />
-            ))}
+      {/* Scrollable content */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto pb-24"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Hero photo slider */}
+        {photos.length > 0 && (
+          <div className="relative h-64 bg-muted">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photos[heroPhoto]} alt={town.name} className="w-full h-full object-cover" />
+            {photos.length > 1 && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                {photos.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setHeroPhoto(i)}
+                    className={`h-1.5 rounded-full transition-all ${i === heroPhoto ? "w-6 bg-white" : "w-1.5 bg-white/60"}`}
+                    aria-label={`Photo ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
+
+        {/* Header text */}
+        <div className="px-4 py-4 border-b">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <h2 className="text-2xl font-bold">{town.name}</h2>
+            <span className="text-sm text-muted-foreground">{town.pref}</span>
+          </div>
+          {town.lineNames && town.lineNames.length > 0 && (
+            <div className="text-xs text-muted-foreground mt-1">{town.lineNames.join("・")}</div>
+          )}
+          <p className="text-sm text-foreground mt-2 leading-relaxed">{town.description}</p>
+        </div>
+
+        <div className="px-4 py-5 space-y-6">
 
         {/* Commute to workplace */}
         {commuteToWork !== null && workplace && (
@@ -250,6 +306,25 @@ function DetailSheetBody({
             </div>
           </section>
         )}
+        </div>
+      </div>
+
+      {/* Fixed bottom CTA bar */}
+      <div className="sticky bottom-0 left-0 right-0 z-10 bg-background border-t px-4 py-3 flex gap-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+        <button
+          onClick={() => onDecide("left")}
+          className="flex-1 h-12 rounded-full border-2 border-gray-300 bg-white font-semibold text-gray-500 active:scale-95 transition-transform flex items-center justify-center gap-1.5"
+        >
+          <X size={18} />
+          後でいいかも
+        </button>
+        <button
+          onClick={() => onDecide("right")}
+          className="flex-1 h-12 rounded-full bg-primary text-primary-foreground font-semibold active:scale-95 transition-transform flex items-center justify-center gap-1.5 shadow-md"
+        >
+          <Heart size={18} fill="currentColor" />
+          行ってみたい
+        </button>
       </div>
     </div>
   );
@@ -662,7 +737,7 @@ export default function HomePage() {
                   />
                 </div>
 
-                {/* Detail sheet trigger — use direct button + controlled Sheet to avoid touch event conflicts with swipe handlers */}
+                {/* Detail trigger — opens a fullscreen modal */}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -677,11 +752,24 @@ export default function HomePage() {
                   <ChevronUp size={14} />
                   詳細を見る
                 </button>
-                <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
-                  <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
-                    <DetailSheetBody town={currentTown} commuteToWork={commuteToWork} workplace={profile?.workplace_station ?? null} />
-                  </SheetContent>
-                </Sheet>
+                <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+                  <DialogContent
+                    showCloseButton={false}
+                    className="!fixed !inset-0 !top-0 !left-0 !transform-none !max-w-full !w-full !h-full !rounded-none !p-0 !gap-0 !ring-0 flex flex-col"
+                  >
+                    <DetailDialogBody
+                      town={currentTown}
+                      commuteToWork={commuteToWork}
+                      workplace={profile?.workplace_station ?? null}
+                      onClose={() => setDetailOpen(false)}
+                      onDecide={(direction) => {
+                        setDetailOpen(false);
+                        // small delay so the modal close animation runs first
+                        setTimeout(() => swipe(direction), 150);
+                      }}
+                    />
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </div>
