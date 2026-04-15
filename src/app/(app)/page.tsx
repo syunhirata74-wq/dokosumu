@@ -747,9 +747,9 @@ export default function HomePage() {
                   onTouchStart={(e) => e.stopPropagation()}
                   onTouchMove={(e) => e.stopPropagation()}
                   onTouchEnd={(e) => e.stopPropagation()}
-                  className="w-full flex items-center justify-center gap-1 py-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  className="w-full h-11 flex items-center justify-center gap-1.5 text-sm font-semibold rounded-full border-2 border-primary bg-primary/5 text-primary active:scale-[0.98] active:bg-primary/10 transition-all"
                 >
-                  <ChevronUp size={14} />
+                  <ChevronUp size={16} />
                   詳細を見る
                 </button>
                 <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
