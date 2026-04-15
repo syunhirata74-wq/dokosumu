@@ -13,7 +13,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 
 const PREF_OPTIONS = ["全て", "東京都", "神奈川県", "埼玉県", "千葉県"];
@@ -172,8 +171,8 @@ function DetailSheetBody({
           </section>
         )}
 
-        {/* Rent range */}
-        {town.rentRange && (
+        {/* Rent range (or fallback to single 2LDK) */}
+        {town.rentRange ? (
           <section>
             <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
               <Coins size={12} /> 家賃相場（賃貸マンション）
@@ -191,6 +190,25 @@ function DetailSheetBody({
               )}
             </div>
           </section>
+        ) : (
+          <section>
+            <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+              <Coins size={12} /> 家賃
+            </h3>
+            <div className="bg-muted/40 rounded-lg p-3 flex items-center justify-between">
+              <span className="text-sm">2LDK</span>
+              <span className="text-lg font-bold">
+                {Math.round((town.rentAvg2LDK ?? town.rent2ldk) / 10000)}万円
+              </span>
+            </div>
+          </section>
+        )}
+
+        {/* Indicator when detailed enrichment is pending */}
+        {!town.commuteHubs && !town.lineNames && !town.topSpots && (
+          <p className="text-[11px] text-center text-muted-foreground bg-muted/30 rounded-lg py-2.5 px-3">
+            この駅の詳細情報は現在準備中です
+          </p>
         )}
 
         {/* Rail lines */}
@@ -646,19 +664,22 @@ export default function HomePage() {
                   />
                 </div>
 
-                {/* Detail sheet trigger */}
+                {/* Detail sheet trigger — use direct button + controlled Sheet to avoid touch event conflicts with swipe handlers */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDetailOpen(true);
+                  }}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onTouchMove={(e) => e.stopPropagation()}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                  className="w-full flex items-center justify-center gap-1 py-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <ChevronUp size={14} />
+                  詳細を見る
+                </button>
                 <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
-                  <SheetTrigger
-                    render={
-                      <button
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-full flex items-center justify-center gap-1 py-2 text-xs text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <ChevronUp size={14} />
-                        詳細を見る
-                      </button>
-                    }
-                  />
                   <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
                     <DetailSheetBody town={currentTown} commuteToWork={commuteToWork} workplace={profile?.workplace_station ?? null} />
                   </SheetContent>
