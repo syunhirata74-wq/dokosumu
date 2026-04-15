@@ -108,33 +108,31 @@ function DetailSheetBody({
   workplace: string | null;
 }) {
   const photos = town.photos && town.photos.length > 0 ? town.photos : town.imageUrl ? [town.imageUrl] : [];
+  // Skip photos[0] since that's already shown on the card behind the sheet
+  const additionalPhotos = photos.slice(1);
   return (
     <div className="flex flex-col">
-      {/* Header with first photo */}
-      {photos[0] && (
-        <div className="relative -mt-4 -mx-0 h-48 overflow-hidden rounded-t-2xl">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photos[0]} alt={town.name} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-          <div className="absolute bottom-3 left-4 text-white">
-            <h2 className="text-xl font-bold">{town.name}</h2>
-            <p className="text-xs opacity-90">{town.pref}</p>
-          </div>
-        </div>
-      )}
+      {/* Drag-indicator handle */}
+      <div className="flex justify-center pt-2 pb-1">
+        <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+      </div>
 
-      <SheetHeader className="pt-3">
+      <SheetHeader className="pt-1 pb-2">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-xl font-bold">{town.name}</h2>
+          <span className="text-xs text-muted-foreground shrink-0">{town.pref}</span>
+        </div>
         <SheetTitle className="sr-only">{town.name}の詳細</SheetTitle>
-        <p className="text-sm text-muted-foreground">{town.description}</p>
+        <p className="text-sm text-muted-foreground mt-1">{town.description}</p>
       </SheetHeader>
 
       <div className="px-4 pb-8 space-y-5">
-        {/* Additional photos */}
-        {photos.length > 1 && (
+        {/* Additional photos (exclude the one already on the card) */}
+        {additionalPhotos.length > 0 && (
           <div className="flex gap-2 overflow-x-auto -mx-4 px-4 scrollbar-hide">
-            {photos.slice(1).map((p, i) => (
+            {additionalPhotos.map((p, i) => (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={i} src={p} alt="" className="h-24 w-32 object-cover rounded-lg shrink-0" />
+              <img key={i} src={p} alt="" className="h-28 w-36 object-cover rounded-lg shrink-0" />
             ))}
           </div>
         )}
