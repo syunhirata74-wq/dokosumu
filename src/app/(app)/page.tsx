@@ -431,14 +431,56 @@ export default function HomePage() {
   // Deterministic hash so the same couple sees the same order across reloads.
   // Mixes station code with user id so couples don't all see stations in the same order.
   const seed = user?.id ?? "";
-  // Collect unique line names present in the data (for the 路線 filter)
-  const knownLines = useMemo(() => {
+  // Collect unique line names grouped by rail company
+  const linesByCompany = useMemo(() => {
+    const getCompany = (line: string): string => {
+      if (line.startsWith("JR")) return "JR";
+      if (line.startsWith("東京メトロ")) return "東京メトロ";
+      if (line.startsWith("都営")) return "都営";
+      const m = line.match(
+        /^(東急|東武|西武|京王|京急|小田急|相鉄|京成|つくば|みなとみらい|多摩|ゆりかもめ|横浜|湘南|りんかい|北総|埼玉|新交通|流鉄|芝山|ディズニー|銚子|いすみ|小湊|千葉都市|日暮里舎人|ニューシャトル|箱根)/
+      );
+      return m ? m[1] : "その他";
+    };
     const s = new Set<string>();
     for (const t of allTowns) {
       if (t.lineNames) t.lineNames.forEach((l) => s.add(l));
     }
-    return [...s].sort();
+    const groups: Record<string, string[]> = {};
+    for (const line of s) {
+      const c = getCompany(line);
+      if (!groups[c]) groups[c] = [];
+      groups[c].push(line);
+    }
+    // Canonical display order for major companies
+    const order = [
+      "JR",
+      "東京メトロ",
+      "都営",
+      "東急",
+      "小田急",
+      "京王",
+      "京急",
+      "東武",
+      "西武",
+      "相鉄",
+      "京成",
+      "みなとみらい",
+      "横浜",
+      "つくば",
+      "りんかい",
+      "その他",
+    ];
+    const ordered = order
+      .filter((k) => groups[k]?.length)
+      .map((k) => ({ company: k, lines: groups[k].sort() }));
+    // Any unexpected groups not in `order`
+    for (const k of Object.keys(groups)) {
+      if (!order.includes(k)) ordered.push({ company: k, lines: groups[k].sort() });
+    }
+    return ordered;
   }, [allTowns]);
+  const knownLinesCount = useMemo(() => linesByCompany.reduce((n, g) => n + g.lines.length, 0), [linesByCompany]);
 
   const filteredTowns = useMemo(() => {
     let result = allTowns;
@@ -648,12 +690,28 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Filters — sectioned */}
-      {showFilters && (
-        <div className="bg-card rounded-xl border p-3 mb-3 space-y-4">
+      {/* Filters — fullscreen modal */}
+      <Dialog open={showFilters} onOpenChange={setShowFilters}>
+        <DialogContent fullscreen showCloseButton={false}>
+          <div className="flex flex-col h-full bg-background">
+            {/* Sticky header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between px-2 h-14 bg-background/95 backdrop-blur border-b">
+              <button
+                onClick={() => setShowFilters(false)}
+                aria-label="閉じる"
+                className="w-12 h-12 flex items-center justify-center rounded-full active:bg-muted transition-colors"
+              >
+                <X size={24} />
+              </button>
+              <DialogTitle className="text-base font-semibold">絞り込み</DialogTitle>
+              <div className="w-12 h-12" />
+            </div>
+
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 pb-24">
           {/* 📍 場所 */}
           <section className="space-y-2">
-            <h3 className="text-xs font-semibold flex items-center gap-1">📍 場所</h3>
+            <h3 className="text-sm font-semibold flex items-center gap-1">📍 場所</h3>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block">エリア</label>
               <div className="flex flex-wrap gap-1.5">
@@ -697,33 +755,51 @@ export default function HomePage() {
               </div>
             )}
 
-            {knownLines.length > 0 && (
+            {knownLinesCount > 0 && (
               <div>
-                <label className="text-[11px] text-muted-foreground mb-1 block">
-                  路線（{selectedLines.size > 0 ? `${selectedLines.size}件選択中` : "絞り込みなし"}）
-                </label>
-                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-                  {knownLines.map((l) => {
-                    const active = selectedLines.has(l);
-                    return (
-                      <button
-                        key={l}
-                        onClick={() => {
-                          setSelectedLines((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(l)) next.delete(l);
-                            else next.add(l);
-                            return next;
-                          });
-                        }}
-                        className={`px-2.5 py-1 rounded-full text-[11px] transition-colors ${
-                          active ? "bg-primary text-primary-foreground" : "bg-muted"
-                        }`}
-                      >
-                        {l}
-                      </button>
-                    );
-                  })}
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] text-muted-foreground">路線</label>
+                  {selectedLines.size > 0 && (
+                    <button
+                      onClick={() => setSelectedLines(new Set())}
+                      className="text-[11px] text-primary underline"
+                    >
+                      {selectedLines.size}件クリア
+                    </button>
+                  )}
+                </div>
+                <div className="rounded-lg border bg-muted/20 max-h-72 overflow-y-auto">
+                  {linesByCompany.map((g) => (
+                    <div key={g.company} className="p-2 border-b last:border-b-0">
+                      <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1 px-1">
+                        {g.company}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {g.lines.map((l) => {
+                          const active = selectedLines.has(l);
+                          return (
+                            <button
+                              key={l}
+                              onClick={() => {
+                                setSelectedLines((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(l)) next.delete(l);
+                                  else next.add(l);
+                                  return next;
+                                });
+                              }}
+                              className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
+                                active ? "bg-primary text-primary-foreground" : "bg-muted"
+                              }`}
+                            >
+                              {/* trim company prefix to reduce noise */}
+                              {l.replace(new RegExp(`^${g.company}`), "")}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -733,7 +809,7 @@ export default function HomePage() {
 
           {/* 💰 予算（間取り別） */}
           <section className="space-y-2">
-            <h3 className="text-xs font-semibold">💰 予算（家賃上限）</h3>
+            <h3 className="text-sm font-semibold">💰 予算（家賃上限）</h3>
             {(Object.keys(RENT_OPTIONS_BY_MADORI) as Madori[]).map((madori) => (
               <div key={madori}>
                 <label className="text-[11px] text-muted-foreground mb-1 block">{madori}</label>
@@ -758,7 +834,7 @@ export default function HomePage() {
 
           {/* 🏙 雰囲気 */}
           <section className="space-y-2">
-            <h3 className="text-xs font-semibold">🏙 雰囲気</h3>
+            <h3 className="text-sm font-semibold">🏙 雰囲気</h3>
             <div className="flex flex-wrap gap-1.5">
               {AMBIANCE_OPTIONS.map((a) => (
                 <button
@@ -773,12 +849,32 @@ export default function HomePage() {
               ))}
             </div>
           </section>
+            </div>
 
-          <p className="text-[10px] text-muted-foreground text-center pt-1">
-            {filteredTowns.length}件の町がヒット
-          </p>
-        </div>
-      )}
+            {/* Fixed footer: reset + apply */}
+            <div className="sticky bottom-0 left-0 right-0 z-10 bg-background border-t px-4 py-3 flex gap-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+              <button
+                onClick={() => {
+                  setPrefFilter("全て");
+                  setRentLimits({ "1LDK": Infinity, "2LDK": Infinity, "3LDK": Infinity });
+                  setAmbiance("all");
+                  setCommuteLimit(null);
+                  setSelectedLines(new Set());
+                }}
+                className="flex-1 h-12 rounded-full border-2 border-gray-300 bg-white font-semibold text-gray-600 active:scale-95 transition-transform"
+              >
+                リセット
+              </button>
+              <button
+                onClick={() => setShowFilters(false)}
+                className="flex-1 h-12 rounded-full bg-primary text-primary-foreground font-semibold active:scale-95 transition-transform shadow-md"
+              >
+                {filteredTowns.length}件を見る
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* No results */}
       {noResults && (
