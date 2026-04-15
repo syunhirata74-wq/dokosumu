@@ -12,6 +12,14 @@ export type ScoreKey =
   | "cost"
   | "safety";
 
+export type FacilityCounts = {
+  cafe?: number;
+  supermarket?: number;
+  park?: number;
+  hospital?: number;
+  gourmet?: number;
+};
+
 export type TownProfile = {
   code: string;
   name: string;
@@ -20,6 +28,10 @@ export type TownProfile = {
   scores: Record<ScoreKey, number>;
   rent2ldk: number;
   description: string;
+  // Objective facts (optional for backward compatibility)
+  facilities?: FacilityCounts;
+  lines?: number;
+  rentAvg2LDK?: number;
 };
 
 export type QuestionOption = {

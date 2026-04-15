@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import type { Town, Rating, TownComment, Spot, Profile } from "@/types/database";
+import type { Town, Rating, TownComment, Spot, Profile, TownLike } from "@/types/database";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +28,45 @@ function MiniAvatar({ profile, size = 20 }: { profile: Profile; size?: number })
   );
 }
 
+function LikeBadge({
+  side,
+  me,
+  partner,
+}: {
+  side: LikeSide;
+  me: Profile | undefined;
+  partner: Profile | undefined;
+}) {
+  if (side === "both" && me && partner) {
+    return (
+      <div className="flex items-center gap-1 bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full shrink-0">
+        <div className="flex -space-x-1.5">
+          <MiniAvatar profile={me} size={18} />
+          <MiniAvatar profile={partner} size={18} />
+        </div>
+        <span>💕 ふたりとも</span>
+      </div>
+    );
+  }
+  if (side === "partner" && partner) {
+    return (
+      <div className="flex items-center gap-1 bg-pink-100 text-pink-700 text-[10px] font-medium px-2 py-1 rounded-full shrink-0">
+        <MiniAvatar profile={partner} size={18} />
+        <span>{partner.name}のLIKE</span>
+      </div>
+    );
+  }
+  if (side === "me" && me) {
+    return (
+      <div className="flex items-center gap-1 bg-muted text-muted-foreground text-[10px] font-medium px-2 py-1 rounded-full shrink-0">
+        <MiniAvatar profile={me} size={18} />
+        <span>あなたのLIKE</span>
+      </div>
+    );
+  }
+  return null;
+}
+
 function getRatingStatus(town: TownWithData, me: Profile | undefined, partner: Profile | undefined) {
   const myRated = me ? town.ratings.some((r) => r.user_id === me.id) : false;
   const partnerRated = partner ? town.ratings.some((r) => r.user_id === partner.id) : false;
@@ -36,32 +75,67 @@ function getRatingStatus(town: TownWithData, me: Profile | undefined, partner: P
   return { myRated, partnerRated, myCommented, partnerCommented };
 }
 
+/**
+ * Who liked a town in the couple.
+ * - "both": both users LIKEd
+ * - "me": only current user LIKEd
+ * - "partner": only partner LIKEd
+ * - "none": town exists (e.g. manually added) but no LIKEs recorded yet
+ */
+type LikeSide = "both" | "me" | "partner" | "none";
+
+function likePriority(side: LikeSide): number {
+  // Sort: both (3) > partner (2) > me (1) > none (0)
+  return side === "both" ? 3 : side === "partner" ? 2 : side === "me" ? 1 : 0;
+}
+
 export default function MatchesPage() {
   const { user, profile } = useAuth();
   const [towns, setTowns] = useState<TownWithData[]>([]);
   const [members, setMembers] = useState<Profile[]>([]);
+  const [likes, setLikes] = useState<TownLike[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!profile?.couple_id) { setLoading(false); return; }
-    loadData();
-  }, [profile?.couple_id]);
-
-  async function loadData() {
-    const [townsRes, membersRes] = await Promise.all([
+  const loadData = useCallback(async () => {
+    if (!profile?.couple_id) return;
+    const coupleId = profile.couple_id;
+    const [townsRes, membersRes, likesRes] = await Promise.all([
       supabase
         .from("towns")
         .select("*, ratings(*), town_comments(*), spots(*)")
-        .eq("couple_id", profile!.couple_id!)
+        .eq("couple_id", coupleId)
         .order("created_at", { ascending: false }),
       supabase
         .from("profiles")
         .select("*")
-        .eq("couple_id", profile!.couple_id!),
+        .eq("couple_id", coupleId),
+      supabase
+        .from("town_likes")
+        .select("*")
+        .eq("couple_id", coupleId),
     ]);
     setTowns((townsRes.data as TownWithData[]) ?? []);
     setMembers(membersRes.data ?? []);
+    setLikes((likesRes.data as TownLike[]) ?? []);
     setLoading(false);
+  }, [profile?.couple_id]);
+
+  useEffect(() => {
+    if (!profile?.couple_id) { setLoading(false); return; }
+    loadData();
+  }, [profile?.couple_id, loadData]);
+
+  function getLikeSide(town: TownWithData, meId: string | undefined, partnerId: string | undefined): LikeSide {
+    if (!town.station_code) return "none";
+    const likers = likes
+      .filter((l) => l.station_code === town.station_code)
+      .map((l) => l.user_id);
+    const myLiked = meId ? likers.includes(meId) : false;
+    const partnerLiked = partnerId ? likers.includes(partnerId) : false;
+    if (myLiked && partnerLiked) return "both";
+    if (partnerLiked) return "partner";
+    if (myLiked) return "me";
+    return "none";
   }
 
   async function markVisited(townId: string) {
@@ -80,7 +154,10 @@ export default function MatchesPage() {
     return <div className="flex items-center justify-center h-64"><div className="animate-pulse"><Heart size={24} className="text-primary" /></div></div>;
   }
 
-  const wishlistTowns = towns.filter((t) => !t.visited);
+  const wishlistTowns = towns
+    .filter((t) => !t.visited)
+    .map((t) => ({ town: t, side: getLikeSide(t, me?.id, partner?.id) }))
+    .sort((a, b) => likePriority(b.side) - likePriority(a.side));
   const visitedTowns = towns.filter((t) => t.visited);
 
   return (
@@ -120,21 +197,22 @@ export default function MatchesPage() {
               </Link>
             </div>
           ) : (
-            wishlistTowns.map((town) => (
-              <Card key={town.id} className="overflow-hidden">
+            wishlistTowns.map(({ town, side }) => (
+              <Card
+                key={town.id}
+                className={`overflow-hidden ${side === "both" ? "border-primary border-2" : ""}`}
+              >
                 <CardContent className="p-0">
                   <Link href={`/towns/${town.id}`}>
                     <div className="p-4 pb-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-bold text-base">{town.name}</h3>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-bold text-base truncate">{town.name}</h3>
                           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                             <MapPin size={12} /> {town.station}
                           </p>
                         </div>
-                        <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                          次: 散歩に行こう
-                        </div>
+                        <LikeBadge side={side} me={me} partner={partner} />
                       </div>
                     </div>
                   </Link>

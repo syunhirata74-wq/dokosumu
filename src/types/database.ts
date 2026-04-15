@@ -384,6 +384,42 @@ export type Database = {
           },
         ];
       };
+      town_likes: {
+        Row: {
+          couple_id: string;
+          station_code: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          couple_id: string;
+          station_code: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {};
+        Relationships: [];
+      };
+      town_swipes: {
+        Row: {
+          couple_id: string;
+          station_code: string;
+          user_id: string;
+          direction: "left" | "right";
+          created_at: string;
+        };
+        Insert: {
+          couple_id: string;
+          station_code: string;
+          user_id: string;
+          direction: "left" | "right";
+          created_at?: string;
+        };
+        Update: {
+          direction?: "left" | "right";
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};
@@ -401,6 +437,8 @@ export type TownRent = Database["public"]["Tables"]["town_rents"]["Row"];
 export type CoupleCondition = Database["public"]["Tables"]["couple_conditions"]["Row"];
 export type ConditionPriority = Database["public"]["Tables"]["condition_priorities"]["Row"];
 export type TownRecommendation = Database["public"]["Tables"]["town_recommendations"]["Row"];
+export type TownLike = Database["public"]["Tables"]["town_likes"]["Row"];
+export type TownSwipe = Database["public"]["Tables"]["town_swipes"]["Row"];
 
 export const FACILITY_TYPES = [
   { value: "supermarket", label: "スーパー", icon: "🛒", googleType: "supermarket" },
