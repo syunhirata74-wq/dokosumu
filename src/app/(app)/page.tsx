@@ -753,10 +753,7 @@ export default function HomePage() {
                   詳細を見る
                 </button>
                 <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-                  <DialogContent
-                    showCloseButton={false}
-                    className="!fixed !inset-0 !top-0 !left-0 !transform-none !max-w-full !w-full !h-full !rounded-none !p-0 !gap-0 !ring-0 flex flex-col"
-                  >
+                  <DialogContent fullscreen showCloseButton={false}>
                     <DetailDialogBody
                       town={currentTown}
                       commuteToWork={commuteToWork}
