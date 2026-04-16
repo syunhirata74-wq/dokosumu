@@ -456,26 +456,25 @@ export default function HomePage() {
     const groups: Record<string, string[]> = {};
     for (const line of Object.keys(linePrefs)) {
       const major = getMajor(line);
-      let key: string;
       if (major) {
-        key = major;
+        if (!groups[major]) groups[major] = [];
+        groups[major].push(line);
       } else {
-        // Minor/local line: group by prefecture (or 広域 if multi-pref)
-        const prefs = [...linePrefs[line]];
-        key = prefs.length === 1 ? prefs[0] : "広域";
+        // Minor/local line: scatter across every prefecture it appears in
+        for (const p of linePrefs[line]) {
+          if (!groups[p]) groups[p] = [];
+          groups[p].push(line);
+        }
       }
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(line);
     }
 
-    // Display order: major companies first, then prefectures, then 広域
+    // Display order: major companies first, then prefectures
     const order = [
       ...MAJOR_COMPANIES,
       "東京都",
       "神奈川県",
       "埼玉県",
       "千葉県",
-      "広域",
     ];
     const ordered = order
       .filter((k) => groups[k]?.length)
