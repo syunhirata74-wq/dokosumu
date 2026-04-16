@@ -230,13 +230,6 @@ export default function MatchesPage() {
                           <Footprints size={16} className="mr-1" /> 二人で散歩してきた！
                         </Button>
                       </div>
-                      {/* Tap anywhere on the name area to go to the town detail (DB) page */}
-                      <Link
-                        href={`/towns/${town.id}`}
-                        className="block mt-1 text-[11px] text-center text-muted-foreground underline"
-                      >
-                        評価・スポット・コメントを見る →
-                      </Link>
                     </>
                   ) : (
                     <Card className={`overflow-hidden ${side === "both" ? "border-primary border-2" : ""}`}>
