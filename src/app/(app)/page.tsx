@@ -427,50 +427,59 @@ export default function HomePage() {
   // Deterministic hash so the same couple sees the same order across reloads.
   // Mixes station code with user id so couples don't all see stations in the same order.
   const seed = user?.id ?? "";
-  // Collect unique line names grouped by rail company
+  // Collect unique line names, grouped: major companies stay by company,
+  // minor/local lines grouped by prefecture.
   const linesByCompany = useMemo(() => {
-    const getCompany = (line: string): string => {
+    // Only the 6 largest companies keep company-grouping. Everything else
+    // (京急, 東武, 西武, 相鉄, 京成, ゆりかもめ, etc.) is grouped by prefecture.
+    const MAJOR_COMPANIES = ["JR", "東京メトロ", "都営", "東急", "小田急", "京王"];
+    const getMajor = (line: string): string | null => {
       if (line.startsWith("JR")) return "JR";
       if (line.startsWith("東京メトロ")) return "東京メトロ";
       if (line.startsWith("都営")) return "都営";
-      const m = line.match(
-        /^(東急|東武|西武|京王|京急|小田急|相鉄|京成|つくば|みなとみらい|多摩|ゆりかもめ|横浜|湘南|りんかい|北総|埼玉|新交通|流鉄|芝山|ディズニー|銚子|いすみ|小湊|千葉都市|日暮里舎人|ニューシャトル|箱根)/
-      );
-      return m ? m[1] : "その他";
+      for (const m of ["東急", "小田急", "京王"]) {
+        if (line.startsWith(m)) return m;
+      }
+      return null;
     };
-    const s = new Set<string>();
+
+    // line → set of prefectures where it's present
+    const linePrefs: Record<string, Set<string>> = {};
     for (const t of allTowns) {
-      if (t.lineNames) t.lineNames.forEach((l) => s.add(l));
+      if (!t.lineNames) continue;
+      for (const l of t.lineNames) {
+        if (!linePrefs[l]) linePrefs[l] = new Set();
+        linePrefs[l].add(t.pref);
+      }
     }
+
     const groups: Record<string, string[]> = {};
-    for (const line of s) {
-      const c = getCompany(line);
-      if (!groups[c]) groups[c] = [];
-      groups[c].push(line);
+    for (const line of Object.keys(linePrefs)) {
+      const major = getMajor(line);
+      let key: string;
+      if (major) {
+        key = major;
+      } else {
+        // Minor/local line: group by prefecture (or 広域 if multi-pref)
+        const prefs = [...linePrefs[line]];
+        key = prefs.length === 1 ? prefs[0] : "広域";
+      }
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(line);
     }
-    // Canonical display order for major companies
+
+    // Display order: major companies first, then prefectures, then 広域
     const order = [
-      "JR",
-      "東京メトロ",
-      "都営",
-      "東急",
-      "小田急",
-      "京王",
-      "京急",
-      "東武",
-      "西武",
-      "相鉄",
-      "京成",
-      "みなとみらい",
-      "横浜",
-      "つくば",
-      "りんかい",
-      "その他",
+      ...MAJOR_COMPANIES,
+      "東京都",
+      "神奈川県",
+      "埼玉県",
+      "千葉県",
+      "広域",
     ];
     const ordered = order
       .filter((k) => groups[k]?.length)
       .map((k) => ({ company: k, lines: groups[k].sort() }));
-    // Any unexpected groups not in `order`
     for (const k of Object.keys(groups)) {
       if (!order.includes(k)) ordered.push({ company: k, lines: groups[k].sort() });
     }
@@ -854,8 +863,7 @@ export default function HomePage() {
                                 active ? "bg-primary text-primary-foreground" : "bg-muted"
                               }`}
                             >
-                              {/* trim company prefix to reduce noise */}
-                              {l.replace(new RegExp(`^${g.company}`), "")}
+                              {l}
                             </button>
                           );
                         })}
