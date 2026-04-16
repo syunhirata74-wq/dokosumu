@@ -358,21 +358,22 @@ export default function MatchesPage() {
                   )}
                   {profile ? (
                     <>
-                      <TownPreviewCard town={profile} />
+                      <TownPreviewCard
+                        town={profile}
+                        footerSlot={
+                          !selectMode ? (
+                            <Link href={`/towns/${town.id}`} className="block">
+                              <Button size="sm" className="w-full h-10">
+                                <Footprints size={16} className="mr-1" /> 町を調べる・評価する
+                              </Button>
+                            </Link>
+                          ) : null
+                        }
+                      />
                       {/* Overlay LIKE badge on top-right of the preview photo */}
                       <div className="absolute top-3 right-3 z-10">
                         <LikeBadge side={side} me={me} partner={partner} />
                       </div>
-                      {/* Go to the rich town detail page (評価・スポット・コメント等) */}
-                      {!selectMode && (
-                        <div className="mt-2">
-                          <Link href={`/towns/${town.id}`} className="block">
-                            <Button size="sm" className="w-full h-10">
-                              <Footprints size={16} className="mr-1" /> 町を調べる・評価する
-                            </Button>
-                          </Link>
-                        </div>
-                      )}
                     </>
                   ) : (
                     <Card className={`overflow-hidden ${side === "both" ? "border-primary border-2" : ""}`}>
@@ -455,46 +456,6 @@ export default function MatchesPage() {
                           partner={partner}
                         />
                       </div>
-                      {!selectMode && (
-                        <div className="mt-2 space-y-2">
-                          {/* Two-person rating status */}
-                          <div className="flex gap-2">
-                            {me && (
-                              <div className={`flex-1 flex items-center gap-2 p-2 rounded-lg text-xs ${status.myRated ? "bg-primary/5" : "bg-muted"}`}>
-                                <MiniAvatar profile={me} size={20} />
-                                <div>
-                                  <div className="font-medium">{me.name}</div>
-                                  <div className="text-muted-foreground text-[10px]">
-                                    {status.myRated ? (
-                                      <span className="text-primary flex items-center gap-0.5"><Star size={8} fill="currentColor" /> 評価済み</span>
-                                    ) : "未評価"}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            {partner && (
-                              <div className={`flex-1 flex items-center gap-2 p-2 rounded-lg text-xs ${status.partnerRated ? "bg-primary/5" : "bg-muted"}`}>
-                                <MiniAvatar profile={partner} size={20} />
-                                <div>
-                                  <div className="font-medium">{partner.name}</div>
-                                  <div className="text-muted-foreground text-[10px]">
-                                    {status.partnerRated ? (
-                                      <span className="text-primary flex items-center gap-0.5"><Star size={8} fill="currentColor" /> 評価済み</span>
-                                    ) : "未評価"}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          <Link href={`/towns/${town.id}`} className="block">
-                            <Button size="sm" variant={status.myRated ? "outline" : "default"} className="w-full h-10">
-                              <Star size={14} className="mr-1" />
-                              {status.myRated ? "評価を見る・修正する" : "評価する"}
-                            </Button>
-                          </Link>
-                        </div>
-                      )}
                     </>
                   ) : (
                     <Card className={`overflow-hidden ${bothRated ? "border-primary" : ""}`}>

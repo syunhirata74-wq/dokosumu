@@ -11,7 +11,7 @@ import { ChevronUp, Clock, Coins, TrainFront, MapPin } from "lucide-react";
  * Used on /towns/new (manual registration preview) and /matches
  * (wishlist/visited list). No swipe gestures, no LIKE/PASS CTA.
  */
-export function TownPreviewCard({ town }: { town: TownProfile }) {
+export function TownPreviewCard({ town, footerSlot }: { town: TownProfile; footerSlot?: React.ReactNode }) {
   const [photoIndex, setPhotoIndex] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
   const photos = (town.photos && town.photos.length > 0
@@ -108,6 +108,7 @@ export function TownPreviewCard({ town }: { town: TownProfile }) {
             <ChevronUp size={16} />
             詳細を見る
           </button>
+          {footerSlot}
         </div>
       </div>
 
