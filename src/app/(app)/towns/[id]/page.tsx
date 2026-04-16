@@ -372,8 +372,9 @@ export default function TownDetailPage() {
             const transitMonthly = commuteTotalFare > 0
               ? Math.round(commuteTotalFare * 40 * 0.7)
               : 30000;
+            const FOOD_COST = 60000; // 2人世帯、外食込み目安
             const monthlyCost =
-              rent2ldk + 20000 + 20000 + 15000 + transitMonthly + 15000;
+              rent2ldk + 20000 + 20000 + 15000 + FOOD_COST + transitMonthly + 15000;
             const movingCost = rent2ldk
               ? Math.round(rent2ldk * 2.5) + 115000
               : 0;
@@ -407,6 +408,7 @@ export default function TownDetailPage() {
                               { label: "管理費・共益費", amount: 20000 },
                               { label: "水光熱費（世帯）", amount: 20000 },
                               { label: "通信費（ネット + 携帯×2）", amount: 15000 },
+                              { label: "食費（外食込み・2人）", amount: FOOD_COST },
                               { label: "通勤定期 × 2人", amount: transitMonthly },
                               { label: "日用品・消耗品", amount: 15000 },
                             ].map((item) => (
@@ -472,21 +474,48 @@ export default function TownDetailPage() {
                       ) : fetchingCommute ? (
                         <p className="text-xs text-muted-foreground text-center py-2">検索中...</p>
                       ) : Object.keys(commuteData).length > 0 ? (
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-2">
                           {members.filter((m) => m.workplace_station).map((m) => {
                             const data = commuteData[m.id];
                             if (!data) return null;
+                            const routeArr: string[] | null = Array.isArray(data.route) ? data.route : null;
                             return (
-                              <div key={m.id} className="bg-muted rounded-lg p-3 text-center">
-                                <MiniAvatar p={m} size={20} />
-                                <div className="text-xs text-muted-foreground mt-1">{m.name}</div>
-                                {data.minutes ? (
-                                  <>
-                                    <div className="text-lg font-bold text-primary mt-1">{data.minutes}分</div>
-                                    <div className="text-[10px] text-muted-foreground">{data.fare ? `${data.fare.toLocaleString()}円` : ""}</div>
-                                  </>
-                                ) : <div className="text-xs text-muted-foreground mt-1">ルート不明</div>}
-                                {data.transitUrl && <a href={data.transitUrl} target="_blank" className="text-[10px] text-primary underline mt-1 block">詳細</a>}
+                              <div key={m.id} className="bg-muted rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <MiniAvatar p={m} size={22} />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-xs text-muted-foreground truncate">
+                                      {m.name} → {m.workplace_station}駅
+                                    </div>
+                                  </div>
+                                  {data.minutes ? (
+                                    <div className="text-right">
+                                      <div className="text-lg font-bold text-primary leading-none">{data.minutes}分</div>
+                                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                                        {data.fare ? `${data.fare.toLocaleString()}円` : ""}
+                                        {typeof data.transfers === "number" && (
+                                          <> ・ 乗換{data.transfers}回</>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="text-xs text-muted-foreground">ルート不明</div>
+                                  )}
+                                </div>
+                                {routeArr && routeArr.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {routeArr.map((line, i) => (
+                                      <span key={i} className="bg-background text-[10px] px-1.5 py-0.5 rounded border">
+                                        {line}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                {data.transitUrl && (
+                                  <a href={data.transitUrl} target="_blank" className="text-[10px] text-primary underline mt-2 inline-block">
+                                    Yahoo路線情報で詳細を見る
+                                  </a>
+                                )}
                               </div>
                             );
                           })}
