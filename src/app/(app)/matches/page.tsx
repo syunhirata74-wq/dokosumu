@@ -9,7 +9,7 @@ import type { TownProfile } from "@/lib/diagnosis";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, MapPin, Compass, Heart, Check, Star, MessageCircle, Footprints } from "lucide-react";
+import { Plus, MapPin, Compass, Heart, Check, Star, MessageCircle, Footprints, CheckSquare, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { TownPreviewCard } from "@/components/town-preview-card";
 
@@ -98,6 +98,8 @@ export default function MatchesPage() {
   const [likes, setLikes] = useState<TownLike[]>([]);
   const [profiles, setProfiles] = useState<TownProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch("/town-profiles.json")
@@ -163,6 +165,46 @@ export default function MatchesPage() {
     loadData();
   }
 
+  function toggleSelect(townId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(townId)) next.delete(townId);
+      else next.add(townId);
+      return next;
+    });
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
+  async function bulkDelete() {
+    if (selectedIds.size === 0) return;
+    const ids = [...selectedIds];
+    if (!confirm(`${ids.length}件の町を候補から削除しますか？`)) return;
+    const { error } = await supabase.from("towns").delete().in("id", ids);
+    if (error) {
+      toast.error("削除に失敗しました: " + error.message);
+      return;
+    }
+    toast.success(`${ids.length}件を削除しました`);
+    exitSelectMode();
+    loadData();
+  }
+
+  async function bulkMarkVisited() {
+    if (selectedIds.size === 0) return;
+    const ids = [...selectedIds];
+    await supabase
+      .from("towns")
+      .update({ visited: true, visited_at: new Date().toISOString().split("T")[0] })
+      .in("id", ids);
+    toast.success(`${ids.length}件を散歩済みにしました`);
+    exitSelectMode();
+    loadData();
+  }
+
   const me = members.find((m) => m.id === user?.id);
   const partner = members.find((m) => m.id !== user?.id);
 
@@ -177,12 +219,39 @@ export default function MatchesPage() {
   const visitedTowns = towns.filter((t) => t.visited);
 
   return (
-    <div className="p-4 space-y-4 pb-20">
+    <div className="p-4 space-y-4 pb-36">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold">候補</h1>
-        <Link href="/towns/new" className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md active:scale-90 transition-transform">
-          <Plus size={20} />
-        </Link>
+        <h1 className="text-lg font-bold">
+          候補{selectMode && selectedIds.size > 0 && (
+            <span className="text-sm font-normal text-muted-foreground ml-2">
+              {selectedIds.size}件選択中
+            </span>
+          )}
+        </h1>
+        {selectMode ? (
+          <button
+            onClick={exitSelectMode}
+            className="text-sm text-muted-foreground underline"
+          >
+            キャンセル
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectMode(true)}
+              aria-label="選択モード"
+              className="w-10 h-10 rounded-full border flex items-center justify-center active:scale-90 transition-transform"
+            >
+              <CheckSquare size={18} />
+            </button>
+            <Link
+              href="/towns/new"
+              className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md active:scale-90 transition-transform"
+            >
+              <Plus size={20} />
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Couple header */}
@@ -215,8 +284,35 @@ export default function MatchesPage() {
           ) : (
             wishlistTowns.map(({ town, side }) => {
               const profile = town.station_code ? profileByCode.get(town.station_code) : null;
+              const isSelected = selectedIds.has(town.id);
               return (
-                <div key={town.id} className={`relative rounded-2xl ${side === "both" ? "ring-2 ring-primary" : ""}`}>
+                <div
+                  key={town.id}
+                  className={`relative rounded-2xl transition-all ${
+                    side === "both" && !selectMode ? "ring-2 ring-primary" : ""
+                  } ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
+                >
+                  {/* Selection overlay — blocks internal card interactions when in select mode */}
+                  {selectMode && (
+                    <button
+                      onClick={() => toggleSelect(town.id)}
+                      aria-label={isSelected ? "選択解除" : "選択"}
+                      className="absolute inset-0 z-30 rounded-2xl"
+                    />
+                  )}
+                  {selectMode && (
+                    <div className="absolute top-3 left-3 z-40 pointer-events-none">
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center border-2 ${
+                          isSelected
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "bg-white/95 border-gray-300"
+                        }`}
+                      >
+                        {isSelected && <Check size={16} />}
+                      </div>
+                    </div>
+                  )}
                   {profile ? (
                     <>
                       <TownPreviewCard town={profile} />
@@ -224,12 +320,14 @@ export default function MatchesPage() {
                       <div className="absolute top-3 right-3 z-10">
                         <LikeBadge side={side} me={me} partner={partner} />
                       </div>
-                      {/* Walk-together CTA under the card */}
-                      <div className="mt-2">
-                        <Button size="sm" className="w-full h-10" onClick={() => markVisited(town.id)}>
-                          <Footprints size={16} className="mr-1" /> 二人で散歩してきた！
-                        </Button>
-                      </div>
+                      {/* Walk-together CTA under the card (hidden in select mode) */}
+                      {!selectMode && (
+                        <div className="mt-2">
+                          <Button size="sm" className="w-full h-10" onClick={() => markVisited(town.id)}>
+                            <Footprints size={16} className="mr-1" /> 二人で散歩してきた！
+                          </Button>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <Card className={`overflow-hidden ${side === "both" ? "border-primary border-2" : ""}`}>
@@ -273,8 +371,30 @@ export default function MatchesPage() {
               const bothRated = status.myRated && status.partnerRated;
               const neitherRated = !status.myRated && !status.partnerRated;
 
+              const isSelected = selectedIds.has(town.id);
               return (
-                <Card key={town.id} className={`overflow-hidden ${bothRated ? "border-primary" : ""}`}>
+                <div key={town.id} className="relative">
+                  {selectMode && (
+                    <>
+                      <button
+                        onClick={() => toggleSelect(town.id)}
+                        aria-label={isSelected ? "選択解除" : "選択"}
+                        className="absolute inset-0 z-30 rounded-lg"
+                      />
+                      <div className="absolute top-3 left-3 z-40 pointer-events-none">
+                        <div
+                          className={`w-7 h-7 rounded-full flex items-center justify-center border-2 ${
+                            isSelected
+                              ? "bg-primary border-primary text-primary-foreground"
+                              : "bg-white/95 border-gray-300"
+                          }`}
+                        >
+                          {isSelected && <Check size={16} />}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                <Card className={`overflow-hidden ${bothRated ? "border-primary" : ""} ${isSelected ? "ring-2 ring-primary" : ""}`}>
                   <CardContent className="p-0">
                     <Link href={`/towns/${town.id}`}>
                       <div className="p-4 pb-2">
@@ -345,11 +465,39 @@ export default function MatchesPage() {
                     )}
                   </CardContent>
                 </Card>
+                </div>
               );
             })
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Floating bulk action bar */}
+      {selectMode && (
+        <div className="fixed bottom-14 left-0 right-0 z-40 bg-background border-t shadow-lg px-4 py-3 flex gap-2 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+          <div className="flex-1 flex items-center gap-2">
+            <span className="text-sm font-semibold">
+              {selectedIds.size > 0 ? `${selectedIds.size}件選択中` : "町を選択してください"}
+            </span>
+          </div>
+          <button
+            onClick={bulkMarkVisited}
+            disabled={selectedIds.size === 0}
+            className="h-10 px-3 rounded-full border text-xs font-semibold active:scale-95 disabled:opacity-40 flex items-center gap-1"
+          >
+            <Footprints size={14} />
+            散歩済み
+          </button>
+          <button
+            onClick={bulkDelete}
+            disabled={selectedIds.size === 0}
+            className="h-10 px-3 rounded-full bg-destructive text-destructive-foreground text-xs font-semibold active:scale-95 disabled:opacity-40 flex items-center gap-1"
+          >
+            <Trash2 size={14} />
+            削除
+          </button>
+        </div>
+      )}
     </div>
   );
 }
