@@ -133,7 +133,8 @@ function DetailDialogBody({
   onClose: () => void;
   onDecide: (direction: "left" | "right") => void;
 }) {
-  const photos = town.photos && town.photos.length > 0 ? town.photos : town.imageUrl ? [town.imageUrl] : [];
+  // Only first 2 photos (station/area); skip facility interior shots (index 2+)
+  const photos = (town.photos && town.photos.length > 0 ? town.photos : town.imageUrl ? [town.imageUrl] : []).slice(0, 2);
   const [heroPhoto, setHeroPhoto] = useState(0);
   const [pullY, setPullY] = useState(0);
   const [pullStart, setPullStart] = useState<number | null>(null);
@@ -188,16 +189,23 @@ function DetailDialogBody({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photos[heroPhoto]} alt={town.name} className="w-full h-full object-cover" />
             {photos.length > 1 && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                {photos.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setHeroPhoto(i)}
-                    className={`h-1.5 rounded-full transition-all ${i === heroPhoto ? "w-6 bg-white" : "w-1.5 bg-white/60"}`}
-                    aria-label={`Photo ${i + 1}`}
-                  />
-                ))}
-              </div>
+              <>
+                <button
+                  className="absolute inset-y-0 left-0 w-1/3 z-10"
+                  onClick={() => setHeroPhoto((i) => (i - 1 + photos.length) % photos.length)}
+                  aria-label="前の写真"
+                />
+                <button
+                  className="absolute inset-y-0 right-0 w-1/3 z-10"
+                  onClick={() => setHeroPhoto((i) => (i + 1) % photos.length)}
+                  aria-label="次の写真"
+                />
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-none">
+                  {photos.map((_, i) => (
+                    <div key={i} className={`h-1.5 rounded-full transition-all ${i === heroPhoto ? "w-6 bg-white" : "w-1.5 bg-white/60"}`} />
+                  ))}
+                </div>
+              </>
             )}
           </div>
         )}
@@ -282,7 +290,7 @@ function DetailDialogBody({
         )}
 
         {/* Indicator when detailed enrichment is pending */}
-        {!town.commuteHubs && !town.lineNames && !town.topSpots && (
+        {!town.commuteHubs && !town.lineNames && (
           <p className="text-[11px] text-center text-muted-foreground bg-muted/30 rounded-lg py-2.5 px-3">
             この駅の詳細情報は現在準備中です
           </p>
@@ -297,20 +305,6 @@ function DetailDialogBody({
             <div className="flex flex-wrap gap-1.5">
               {town.lineNames.map((l) => (
                 <span key={l} className="bg-muted text-xs px-2.5 py-1 rounded-full">{l}</span>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Top spots */}
-        {town.topSpots && town.topSpots.length > 0 && (
-          <section>
-            <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-              <Sparkles size={12} /> 代表スポット
-            </h3>
-            <div className="flex flex-wrap gap-1.5">
-              {town.topSpots.map((s) => (
-                <span key={s} className="bg-primary/10 text-primary text-xs px-2.5 py-1 rounded-full">{s}</span>
               ))}
             </div>
           </section>
@@ -929,11 +923,13 @@ export default function HomePage() {
             >
               {/* Photo slider */}
               {(() => {
-                const photoList = currentTown.photos && currentTown.photos.length > 0
+                // Only use first 2 photos (station/area shots); skip facility interiors (index 2+)
+                const allPhotos = currentTown.photos && currentTown.photos.length > 0
                   ? currentTown.photos
                   : currentTown.imageUrl
                   ? [currentTown.imageUrl]
                   : [];
+                const photoList = allPhotos.slice(0, 2);
                 const active = photoList[photoIndex] ?? photoList[0];
                 return (
                   <div className="relative h-64 bg-gradient-to-br from-emerald-200 to-emerald-100">
@@ -943,18 +939,25 @@ export default function HomePage() {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
-                    {/* Photo dots */}
+                    {/* Tap left/right half to change photo */}
                     {photoList.length > 1 && (
-                      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
-                        {photoList.map((_, i) => (
-                          <button
-                            key={i}
-                            onClick={(e) => { e.stopPropagation(); setPhotoIndex(i); }}
-                            className={`h-1 rounded-full transition-all ${i === photoIndex ? "w-6 bg-white" : "w-1.5 bg-white/50"}`}
-                            aria-label={`Photo ${i + 1}`}
-                          />
-                        ))}
-                      </div>
+                      <>
+                        <button
+                          className="absolute inset-y-0 left-0 w-1/3 z-20"
+                          onClick={(e) => { e.stopPropagation(); setPhotoIndex((i) => (i - 1 + photoList.length) % photoList.length); }}
+                          aria-label="前の写真"
+                        />
+                        <button
+                          className="absolute inset-y-0 right-0 w-1/3 z-20"
+                          onClick={(e) => { e.stopPropagation(); setPhotoIndex((i) => (i + 1) % photoList.length); }}
+                          aria-label="次の写真"
+                        />
+                        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 pointer-events-none">
+                          {photoList.map((_, i) => (
+                            <div key={i} className={`h-1 rounded-full transition-all ${i === photoIndex ? "w-6 bg-white" : "w-1.5 bg-white/50"}`} />
+                          ))}
+                        </div>
+                      </>
                     )}
 
                     {/* Partner-already-LIKED badge */}
