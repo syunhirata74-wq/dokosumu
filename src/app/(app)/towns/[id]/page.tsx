@@ -361,57 +361,78 @@ export default function TownDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* === 調べるタブ === */}
+        {/* === 調べるタブ === 3 Cards: 費用 / アクセス・環境 / 物件 */}
         <TabsContent value="research" className="mt-4 space-y-4">
           {(() => {
-            // Rent baseline from TownProfile (no API call needed)
             const rent2ldk = townProfile?.rentAvg2LDK ?? townProfile?.rent2ldk ?? 0;
             const commuteTotalFare = Object.values(commuteData).reduce(
               (s, d) => s + (d?.fare ?? 0),
               0
             );
-            // Monthly transit pass ≈ fare × 40 days × 0.7 (typical 1-month pass discount)
             const transitMonthly = commuteTotalFare > 0
               ? Math.round(commuteTotalFare * 40 * 0.7)
-              : 30000; // fallback: 15k × 2 people
+              : 30000;
             const monthlyCost =
-              rent2ldk
-                + 20000 // 管理費・共益費
-                + 20000 // 水光熱
-                + 15000 // 通信
-                + transitMonthly
-                + 15000; // 日用品
+              rent2ldk + 20000 + 20000 + 15000 + transitMonthly + 15000;
             const movingCost = rent2ldk
               ? Math.round(rent2ldk * 2.5) + 115000
               : 0;
 
             return (
               <>
-                {/* 暮らしのコスト試算 */}
+                {/* ====== 1. 費用 Card ====== */}
                 {rent2ldk > 0 && (
                   <Card>
-                    <CardContent className="p-4">
-                      <h2 className="font-semibold text-sm flex items-center gap-1 mb-3">
-                        <Wallet size={16} /> 暮らしのコスト（月額目安）
+                    <CardContent className="p-4 space-y-4">
+                      <h2 className="font-semibold text-sm flex items-center gap-1">
+                        <Wallet size={16} /> 費用
                       </h2>
-                      <div className="text-center bg-primary/5 rounded-lg p-4 mb-3">
-                        <div className="text-3xl font-bold text-primary">
-                          {formatYen(monthlyCost)}
+
+                      {/* 月額 big number */}
+                      <div>
+                        <div className="text-[11px] text-muted-foreground mb-1">月額目安</div>
+                        <div className="text-center bg-primary/5 rounded-lg p-4">
+                          <div className="text-3xl font-bold text-primary">
+                            {formatYen(monthlyCost)}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            年間 {formatYen(monthlyCost * 12)}
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          年間 {formatYen(monthlyCost * 12)}
-                        </div>
+                        <details className="text-xs mt-2">
+                          <summary className="cursor-pointer text-muted-foreground">月額の内訳</summary>
+                          <div className="space-y-1 mt-2 pl-2">
+                            {[
+                              { label: "2LDK家賃", amount: rent2ldk },
+                              { label: "管理費・共益費", amount: 20000 },
+                              { label: "水光熱費（世帯）", amount: 20000 },
+                              { label: "通信費（ネット + 携帯×2）", amount: 15000 },
+                              { label: "通勤定期 × 2人", amount: transitMonthly },
+                              { label: "日用品・消耗品", amount: 15000 },
+                            ].map((item) => (
+                              <div key={item.label} className="flex justify-between">
+                                <span className="text-muted-foreground">{item.label}</span>
+                                <span>{formatYen(item.amount)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
                       </div>
+
+                      {/* 引越し初期費用 (accordion) */}
                       <details className="text-xs">
-                        <summary className="cursor-pointer text-muted-foreground">内訳を見る</summary>
-                        <div className="space-y-1 mt-2">
+                        <summary className="cursor-pointer flex items-center gap-1 text-sm text-muted-foreground">
+                          <Truck size={14} /> 引越し初期費用の目安 {formatYen(movingCost)}
+                        </summary>
+                        <div className="space-y-1 mt-2 pl-2">
                           {[
-                            { label: "2LDK家賃", amount: rent2ldk },
-                            { label: "管理費・共益費", amount: 20000 },
-                            { label: "水光熱費（世帯）", amount: 20000 },
-                            { label: "通信費（ネット + 携帯×2）", amount: 15000 },
-                            { label: "通勤定期 × 2人", amount: transitMonthly },
-                            { label: "日用品・消耗品", amount: 15000 },
+                            { label: "敷金（0〜1ヶ月）", amount: 0 },
+                            { label: "礼金（1ヶ月）", amount: rent2ldk },
+                            { label: "仲介手数料（0.5ヶ月）", amount: Math.round(rent2ldk * 0.5) },
+                            { label: "前家賃（1ヶ月）", amount: rent2ldk },
+                            { label: "火災保険", amount: 20000 },
+                            { label: "鍵交換", amount: 15000 },
+                            { label: "引越し業者（2人分）", amount: 80000 },
                           ].map((item) => (
                             <div key={item.label} className="flex justify-between">
                               <span className="text-muted-foreground">{item.label}</span>
@@ -424,38 +445,124 @@ export default function TownDetailPage() {
                   </Card>
                 )}
 
-                {/* 引越し初期費用 */}
-                {rent2ldk > 0 && (
-                  <Card>
-                    <CardContent className="p-4">
-                      <h2 className="font-semibold text-sm flex items-center gap-1 mb-3">
-                        <Truck size={16} /> 引越し初期費用（目安）
-                      </h2>
-                      <div className="space-y-1.5 text-sm">
-                        {[
-                          { label: "敷金（0〜1ヶ月）", amount: 0 },
-                          { label: "礼金（1ヶ月）", amount: rent2ldk },
-                          { label: "仲介手数料（0.5ヶ月）", amount: Math.round(rent2ldk * 0.5) },
-                          { label: "前家賃（1ヶ月）", amount: rent2ldk },
-                          { label: "火災保険", amount: 20000 },
-                          { label: "鍵交換", amount: 15000 },
-                          { label: "引越し業者（2人分）", amount: 80000 },
-                        ].map((item) => (
-                          <div key={item.label} className="flex justify-between">
-                            <span className="text-muted-foreground text-xs">{item.label}</span>
-                            <span className="text-xs">{formatYen(item.amount)}</span>
-                          </div>
-                        ))}
-                        <div className="border-t pt-1.5 flex justify-between font-bold">
-                          <span>合計目安</span>
-                          <span className="text-primary">{formatYen(movingCost)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                {/* ====== 2. アクセス・環境 Card ====== */}
+                <Card>
+                  <CardContent className="p-4 space-y-4">
+                    <h2 className="font-semibold text-sm flex items-center gap-1">
+                      <Map size={16} /> アクセス・環境
+                    </h2>
 
-                {/* 物件検索リンク集 */}
+                    {/* 通勤 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                          <Train size={12} /> 通勤
+                        </h3>
+                        {members.some((m) => m.workplace_station) && town.station && !fetchingCommute && (
+                          <Button variant="outline" size="sm" onClick={() => { members.forEach((m) => { if (m.workplace_station && town.station) fetchCommute(town.station, m.workplace_station, m.id); }); }}>
+                            {Object.keys(commuteData).length > 0 ? "再検索" : "調べる"}
+                          </Button>
+                        )}
+                      </div>
+                      {!members.some((m) => m.workplace_station) ? (
+                        <div className="text-center py-2">
+                          <p className="text-xs text-muted-foreground mb-2">職場駅を設定すると通勤時間がわかります</p>
+                          <Link href="/settings"><Button variant="outline" size="sm">設定へ</Button></Link>
+                        </div>
+                      ) : fetchingCommute ? (
+                        <p className="text-xs text-muted-foreground text-center py-2">検索中...</p>
+                      ) : Object.keys(commuteData).length > 0 ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          {members.filter((m) => m.workplace_station).map((m) => {
+                            const data = commuteData[m.id];
+                            if (!data) return null;
+                            return (
+                              <div key={m.id} className="bg-muted rounded-lg p-3 text-center">
+                                <MiniAvatar p={m} size={20} />
+                                <div className="text-xs text-muted-foreground mt-1">{m.name}</div>
+                                {data.minutes ? (
+                                  <>
+                                    <div className="text-lg font-bold text-primary mt-1">{data.minutes}分</div>
+                                    <div className="text-[10px] text-muted-foreground">{data.fare ? `${data.fare.toLocaleString()}円` : ""}</div>
+                                  </>
+                                ) : <div className="text-xs text-muted-foreground mt-1">ルート不明</div>}
+                                {data.transitUrl && <a href={data.transitUrl} target="_blank" className="text-[10px] text-primary underline mt-1 block">詳細</a>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground text-center py-2">「調べる」で通勤時間を検索</p>
+                      )}
+                    </div>
+
+                    {/* 区切り */}
+                    <div className="h-px bg-border" />
+
+                    {/* 周辺施設 */}
+                    <div>
+                      <h3 className="text-xs font-semibold text-muted-foreground mb-2">周辺施設</h3>
+                      <div className="grid grid-cols-4 gap-1.5 mb-3">
+                        {FACILITY_TYPES.map((ft) => (
+                          <button
+                            key={ft.value}
+                            onClick={() => setSelectedFacilityTypes((prev) => prev.includes(ft.value) ? prev.filter((v) => v !== ft.value) : [...prev, ft.value])}
+                            className={`flex flex-col items-center gap-0.5 p-2 rounded-lg border text-[10px] transition-colors ${selectedFacilityTypes.includes(ft.value) ? "border-primary bg-primary/5 text-primary font-medium" : "border-border"}`}
+                          >
+                            <span className="text-sm">{ft.icon}</span>
+                            <span>{ft.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {selectedFacilityTypes.length > 0 && (
+                        <Button variant="outline" size="sm" className="w-full mb-3" onClick={fetchFacilitiesData} disabled={fetchingFacilities}>
+                          {fetchingFacilities ? "検索中..." : "検索"}
+                        </Button>
+                      )}
+                      {facilities.length > 0 && (
+                        <>
+                          <FacilityMap facilities={facilities} typeIcons={Object.fromEntries(FACILITY_TYPES.map((t) => [t.googleType, t.icon]))} />
+                          <div className="space-y-1 max-h-40 overflow-y-auto mt-2">
+                            {facilities.map((f, i) => {
+                              const ft = FACILITY_TYPES.find((t) => t.googleType === f.type);
+                              return (
+                                <div key={i} className="flex items-center gap-2 text-xs py-1 border-b last:border-0">
+                                  <span>{ft?.icon ?? "📍"}</span>
+                                  <span className="flex-1 truncate">{f.name}</span>
+                                  {f.rating && <span className="text-muted-foreground">★{f.rating}</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* 区切り */}
+                    <div className="h-px bg-border" />
+
+                    {/* 防災バナー */}
+                    {townProfile?.location ? (
+                      <a
+                        href={`https://disaportal.gsi.go.jp/maps/index.html?ll=${townProfile.location.lat},${townProfile.location.lng}&z=15&base=pale&ls=seamlesspic&disp=11111`}
+                        target="_blank"
+                        rel="noopener"
+                        className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg p-3 active:scale-[0.98] transition-transform"
+                      >
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle size={16} className="text-red-700" />
+                          <div>
+                            <div className="text-sm font-semibold text-red-900">ハザードマップを見る</div>
+                            <div className="text-[10px] text-red-700">浸水・土砂災害・地震・津波</div>
+                          </div>
+                        </div>
+                        <ExternalLink size={14} className="text-red-700" />
+                      </a>
+                    ) : null}
+                  </CardContent>
+                </Card>
+
+                {/* ====== 3. 物件を探す Card ====== */}
                 {town.station_code && town.station && (
                   <Card>
                     <CardContent className="p-4">
@@ -496,105 +603,9 @@ export default function TownDetailPage() {
                     </CardContent>
                   </Card>
                 )}
-
-                {/* 防災情報 */}
-                {townProfile?.location && (
-                  <Card>
-                    <CardContent className="p-4">
-                      <h2 className="font-semibold text-sm flex items-center gap-1 mb-3">
-                        <AlertTriangle size={16} /> 防災情報
-                      </h2>
-                      <a
-                        href={`https://disaportal.gsi.go.jp/maps/index.html?ll=${townProfile.location.lat},${townProfile.location.lng}&z=15&base=pale&ls=seamlesspic&disp=11111`}
-                        target="_blank"
-                        rel="noopener"
-                        className="block bg-red-50 border border-red-200 rounded-lg p-3 mb-2 active:scale-[0.98] transition-transform"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm font-semibold text-red-900">ハザードマップを見る</div>
-                            <div className="text-[11px] text-red-700 mt-0.5">浸水・土砂災害・地震・津波</div>
-                          </div>
-                          <ExternalLink size={14} className="text-red-700" />
-                        </div>
-                      </a>
-                      <p className="text-[10px] text-muted-foreground">
-                        国土交通省 ハザードマップポータル（{town.station} 周辺で開きます）
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
               </>
             );
           })()}
-
-          {/* Commute */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-sm flex items-center gap-1"><Train size={16} /> 通勤</h2>
-                {members.some((m) => m.workplace_station) && town.station && !fetchingCommute && (
-                  <Button variant="outline" size="sm" onClick={() => { members.forEach((m) => { if (m.workplace_station && town.station) fetchCommute(town.station, m.workplace_station, m.id); }); }}>
-                    {Object.keys(commuteData).length > 0 ? "再検索" : "調べる"}
-                  </Button>
-                )}
-              </div>
-              {!members.some((m) => m.workplace_station) ? (
-                <div className="text-center py-2"><p className="text-xs text-muted-foreground mb-2">職場駅を設定すると通勤時間がわかります</p><Link href="/settings"><Button variant="outline" size="sm">設定へ</Button></Link></div>
-              ) : fetchingCommute ? (
-                <p className="text-xs text-muted-foreground text-center py-2">検索中...</p>
-              ) : Object.keys(commuteData).length > 0 ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {members.filter((m) => m.workplace_station).map((m) => {
-                    const data = commuteData[m.id];
-                    if (!data) return null;
-                    return (
-                      <div key={m.id} className="bg-muted rounded-lg p-3 text-center">
-                        <MiniAvatar p={m} size={20} />
-                        <div className="text-xs text-muted-foreground mt-1">{m.name}</div>
-                        {data.minutes ? (
-                          <>
-                            <div className="text-lg font-bold text-primary mt-1">{data.minutes}分</div>
-                            <div className="text-[10px] text-muted-foreground">{data.fare ? `${data.fare.toLocaleString()}円` : ""}</div>
-                          </>
-                        ) : <div className="text-xs text-muted-foreground mt-1">ルート不明</div>}
-                        {data.transitUrl && <a href={data.transitUrl} target="_blank" className="text-[10px] text-primary underline mt-1 block">詳細</a>}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground text-center py-2">「調べる」で通勤時間を検索</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Facilities */}
-          <Card>
-            <CardContent className="p-4">
-              <h2 className="font-semibold text-sm flex items-center gap-1 mb-3"><Map size={16} /> 周辺施設</h2>
-              <div className="grid grid-cols-4 gap-1.5 mb-3">
-                {FACILITY_TYPES.map((ft) => (
-                  <button key={ft.value} onClick={() => setSelectedFacilityTypes((prev) => prev.includes(ft.value) ? prev.filter((v) => v !== ft.value) : [...prev, ft.value])}
-                    className={`flex flex-col items-center gap-0.5 p-2 rounded-lg border text-[10px] transition-colors ${selectedFacilityTypes.includes(ft.value) ? "border-primary bg-primary/5 text-primary font-medium" : "border-border"}`}>
-                    <span className="text-sm">{ft.icon}</span><span>{ft.label}</span>
-                  </button>
-                ))}
-              </div>
-              {selectedFacilityTypes.length > 0 && <Button variant="outline" size="sm" className="w-full mb-3" onClick={fetchFacilitiesData} disabled={fetchingFacilities}>{fetchingFacilities ? "検索中..." : "検索"}</Button>}
-              {facilities.length > 0 && (
-                <>
-                  <FacilityMap facilities={facilities} typeIcons={Object.fromEntries(FACILITY_TYPES.map((t) => [t.googleType, t.icon]))} />
-                  <div className="space-y-1 max-h-40 overflow-y-auto mt-2">
-                    {facilities.map((f, i) => {
-                      const ft = FACILITY_TYPES.find((t) => t.googleType === f.type);
-                      return (<div key={i} className="flex items-center gap-2 text-xs py-1 border-b last:border-0"><span>{ft?.icon ?? "📍"}</span><span className="flex-1 truncate">{f.name}</span>{f.rating && <span className="text-muted-foreground">★{f.rating}</span>}</div>);
-                    })}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* === 記録タブ === */}
