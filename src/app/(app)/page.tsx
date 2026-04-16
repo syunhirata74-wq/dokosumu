@@ -997,8 +997,30 @@ export default function HomePage() {
                 <div className="grid grid-cols-3 gap-2">
                   <MetricCell
                     Icon={Clock}
-                    value={commuteToWork ? `${commuteToWork}分` : currentTown.commuteHubs?.["渋谷"] ? `渋谷${currentTown.commuteHubs["渋谷"]}分` : "—"}
-                    label={commuteToWork ? "通勤" : "渋谷まで"}
+                    value={(() => {
+                      if (commuteToWork) return `${commuteToWork}分`;
+                      const hubs = currentTown.commuteHubs;
+                      if (!hubs) return "—";
+                      let mins = Infinity;
+                      for (const h of ["東京", "渋谷", "新宿"] as const) {
+                        if (hubs[h] !== undefined && hubs[h]! < mins) mins = hubs[h]!;
+                      }
+                      return mins === Infinity ? "—" : `${mins}分`;
+                    })()}
+                    label={(() => {
+                      if (commuteToWork) return "勤務先まで";
+                      const hubs = currentTown.commuteHubs;
+                      if (!hubs) return "主要駅まで";
+                      let best: string | null = null;
+                      let mins = Infinity;
+                      for (const h of ["東京", "渋谷", "新宿"] as const) {
+                        if (hubs[h] !== undefined && hubs[h]! < mins) {
+                          mins = hubs[h]!;
+                          best = h;
+                        }
+                      }
+                      return best ? `${best}まで` : "主要駅まで";
+                    })()}
                   />
                   <MetricCell
                     Icon={Coins}
