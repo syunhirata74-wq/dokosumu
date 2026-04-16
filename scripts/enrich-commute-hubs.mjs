@@ -20,23 +20,53 @@ const PROFILES_PATH = path.join(ROOT, "public/town-profiles.json");
 const HUBS = ["東京", "渋谷", "新宿"];
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15";
 
-async function fetchCommute(fromStation, toStation) {
+async function fetchCommute(fromStation, toStation, retries = 2) {
   const cleanFrom = fromStation.replace(/駅$/, "");
   const cleanTo = toStation.replace(/駅$/, "");
   const url = `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(
     cleanFrom
   )}&to=${encodeURIComponent(cleanTo)}&type=1&ticket=ic`;
-  const res = await fetch(url, {
-    headers: { "User-Agent": UA, "Accept-Language": "ja" },
-  });
-  if (!res.ok) return null;
-  const html = await res.text();
-  const timeMatch = html.match(/(\d+)時間(\d+)分/) || html.match(/(\d+)分/);
-  if (!timeMatch) return null;
-  if (timeMatch.length === 3) {
-    return parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2]);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    let res;
+    try {
+      res = await fetch(url, {
+        headers: {
+          "User-Agent": UA,
+          "Accept-Language": "ja",
+          Accept: "text/html,application/xhtml+xml",
+        },
+      });
+    } catch (err) {
+      // Network error (ECONNRESET, timeout, etc.) — backoff and retry
+      if (attempt < retries) {
+        await sleep(3000 + attempt * 2000);
+        continue;
+      }
+      return null;
+    }
+    if (!res.ok) {
+      if (res.status === 429 || res.status >= 500) {
+        await sleep(3000 + attempt * 2000);
+        continue;
+      }
+      return null;
+    }
+    const html = await res.text();
+    const timeMatch = html.match(/(\d+)時間(\d+)分/) || html.match(/(\d+)分/);
+    if (!timeMatch) {
+      // empty result: might be rate-limited, backoff and retry
+      if (attempt < retries) {
+        await sleep(2000 + attempt * 2000);
+        continue;
+      }
+      return null;
+    }
+    if (timeMatch.length === 3) {
+      return parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2]);
+    }
+    return parseInt(timeMatch[1]);
   }
-  return parseInt(timeMatch[1]);
+  return null;
 }
 
 async function sleep(ms) {
@@ -84,11 +114,13 @@ async function main() {
     const neededHubs = missing.filter((h) => h !== t.name);
     processed++;
 
-    const tasks = neededHubs.map((hub) => async () => {
+    // Sequential per station with inter-call delay (polite to Yahoo)
+    const results = [];
+    for (const hub of neededHubs) {
       const mins = await fetchCommute(t.name, hub);
-      return { hub, mins };
-    });
-    const results = await runConcurrent(tasks, 3);
+      results.push({ hub, mins });
+      await sleep(600 + Math.random() * 400); // 0.6-1s jitter
+    }
 
     t.commuteHubs = { ...hubs };
     for (const r of results) {
