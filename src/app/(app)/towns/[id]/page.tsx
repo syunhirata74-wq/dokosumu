@@ -261,18 +261,6 @@ export default function TownDetailPage() {
           {town.station && <span className="flex items-center gap-1"><Train size={14} /> {town.station}</span>}
           {town.visited_at && <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(town.visited_at).toLocaleDateString("ja-JP")}</span>}
         </div>
-        {!town.visited && (
-          <Button size="sm" className="mt-3" onClick={markAsVisited}>
-            <Footprints size={14} className="mr-1" /> 二人で散歩してきた！
-          </Button>
-        )}
-        {/* Progress */}
-        <div className="flex items-center gap-2 mt-3">
-          <div className="flex-1 h-1.5 bg-white/50 rounded-full overflow-hidden">
-            <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${(stepsDone / 4) * 100}%` }} />
-          </div>
-          <span className="text-xs text-muted-foreground">{stepsDone}/4</span>
-        </div>
         {/* Recommend */}
         <div className="flex items-center justify-between mt-3">
           <span className="text-xs">
@@ -286,14 +274,14 @@ export default function TownDetailPage() {
 
       {/* Tabs */}
       <div className="p-4 space-y-4">
-      <Tabs defaultValue="overview">
+      <Tabs defaultValue="research">
         <TabsList className="w-full">
-          <TabsTrigger value="overview" className="flex-1 text-xs">概要</TabsTrigger>
           <TabsTrigger value="research" className="flex-1 text-xs">調べる</TabsTrigger>
-          <TabsTrigger value="record" className="flex-1 text-xs">記録</TabsTrigger>
+          <TabsTrigger value="record" className="flex-1 text-xs">記録する</TabsTrigger>
+          <TabsTrigger value="overview" className="flex-1 text-xs">評価する</TabsTrigger>
         </TabsList>
 
-        {/* === 概要タブ === */}
+        {/* === 評価するタブ === */}
         <TabsContent value="overview" className="mt-4 space-y-4">
           {/* Two-person rating */}
           <Card>
