@@ -447,7 +447,19 @@ export default function MatchesPage() {
 
                   {profile ? (
                     <>
-                      <TownPreviewCard town={profile} />
+                      <TownPreviewCard
+                        town={profile}
+                        footerSlot={
+                          !selectMode ? (
+                            <Link href={`/towns/${town.id}`} className="block">
+                              <Button size="sm" variant={status.myRated ? "outline" : "default"} className="w-full h-10">
+                                <Star size={14} className="mr-1" />
+                                {status.myRated ? "評価を見る・修正する" : "評価する"}
+                              </Button>
+                            </Link>
+                          ) : null
+                        }
+                      />
                       <div className="absolute top-3 right-3 z-10">
                         <RatingBadge
                           myRated={status.myRated}
