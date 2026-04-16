@@ -50,6 +50,7 @@ export type TownProfile = {
   commuteHubs?: CommuteHubs;
   topSpots?: string[]; // 代表的なスポット（Google Places 高評価）
   photos?: string[]; // 複数枚の写真URL
+  location?: { lat: number; lng: number };
 };
 
 export type QuestionOption = {

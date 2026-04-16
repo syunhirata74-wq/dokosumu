@@ -449,6 +449,10 @@ export const FACILITY_TYPES = [
   { value: "gym", label: "ジム", icon: "🏋️", googleType: "gym" },
   { value: "restaurant", label: "飲食店", icon: "🍽️", googleType: "restaurant" },
   { value: "cafe", label: "カフェ", icon: "☕", googleType: "cafe" },
+  { value: "day_care", label: "保育園", icon: "🧒", googleType: "day_care" },
+  { value: "primary_school", label: "小学校", icon: "🏫", googleType: "primary_school" },
+  { value: "secondary_school", label: "中学・高校", icon: "🎒", googleType: "secondary_school" },
+  { value: "library", label: "図書館", icon: "📚", googleType: "library" },
 ] as const;
 
 export const RATING_CATEGORIES = [

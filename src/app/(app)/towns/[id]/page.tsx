@@ -26,8 +26,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, Train, Calendar, Pin, Heart, Coins, Truck, Map, MessageCircle, ShoppingCart, TreePine, UtensilsCrossed, Footprints, Plus } from "lucide-react";
+import { Home, Train, Calendar, Pin, Heart, Coins, Truck, Map, MessageCircle, ShoppingCart, TreePine, UtensilsCrossed, Footprints, Plus, AlertTriangle, Wallet, ExternalLink, Search } from "lucide-react";
 import dynamic from "next/dynamic";
+import { buildSearchUrls } from "@/lib/affiliate";
+import type { TownProfile } from "@/lib/diagnosis";
 
 const RATING_ICON_MAP: Record<string, React.ReactNode> = {
   living_env: <Home size={16} />,
@@ -67,6 +69,7 @@ export default function TownDetailPage() {
   const [fetchingFacilities, setFetchingFacilities] = useState(false);
   const [loading, setLoading] = useState(true);
   const [heroPhoto, setHeroPhoto] = useState<string | null>(null);
+  const [townProfile, setTownProfile] = useState<TownProfile | null>(null);
 
   useEffect(() => {
     loadData();
@@ -77,9 +80,12 @@ export default function TownDetailPage() {
     if (!town?.station_code) return;
     fetch("/town-profiles.json")
       .then((r) => r.json())
-      .then((profiles: { code: string; photos?: string[] }[]) => {
+      .then((profiles: TownProfile[]) => {
         const match = profiles.find((p) => p.code === town.station_code);
-        if (match?.photos?.[0]) setHeroPhoto(match.photos[0]);
+        if (match) {
+          setTownProfile(match);
+          if (match.photos?.[0]) setHeroPhoto(match.photos[0]);
+        }
       })
       .catch(() => {});
   }, [town?.station_code]);
@@ -357,53 +363,170 @@ export default function TownDetailPage() {
 
         {/* === 調べるタブ === */}
         <TabsContent value="research" className="mt-4 space-y-4">
-          {/* Rent */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-sm flex items-center gap-1"><Coins size={16} /> 家賃相場</h2>
-                {town.station_code && (
-                  <Button variant="outline" size="sm" onClick={fetchRent} disabled={fetchingRent}>
-                    {fetchingRent ? "取得中..." : rent ? "更新" : "調べる"}
-                  </Button>
-                )}
-              </div>
-              {rent && rent.rent_avg ? (
-                <div className="text-center bg-muted rounded-lg p-4">
-                  <div className="text-xs text-muted-foreground mb-1">2LDK目安</div>
-                  <div className="text-2xl font-bold text-primary">{formatYen(rent.rent_avg)}</div>
-                  {town.station_code && <a href={`https://suumo.jp/chintai/soba/tokyo/ek_${town.station_code}/`} target="_blank" className="text-xs text-primary underline mt-1 block">SUUMOで確認</a>}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-2">{town.station_code ? "「調べる」で家賃を取得" : "駅コードがありません"}</p>
-              )}
-            </CardContent>
-          </Card>
+          {(() => {
+            // Rent baseline from TownProfile (no API call needed)
+            const rent2ldk = townProfile?.rentAvg2LDK ?? townProfile?.rent2ldk ?? 0;
+            const commuteTotalFare = Object.values(commuteData).reduce(
+              (s, d) => s + (d?.fare ?? 0),
+              0
+            );
+            // Monthly transit pass ≈ fare × 40 days × 0.7 (typical 1-month pass discount)
+            const transitMonthly = commuteTotalFare > 0
+              ? Math.round(commuteTotalFare * 40 * 0.7)
+              : 30000; // fallback: 15k × 2 people
+            const monthlyCost =
+              rent2ldk
+                + 20000 // 管理費・共益費
+                + 20000 // 水光熱
+                + 15000 // 通信
+                + transitMonthly
+                + 15000; // 日用品
+            const movingCost = rent2ldk
+              ? Math.round(rent2ldk * 2.5) + 115000
+              : 0;
 
-          {/* Moving cost */}
-          {rent && rent.rent_avg && rentAvg > 0 && (
-            <Card>
-              <CardContent className="p-4">
-                <h2 className="font-semibold text-sm flex items-center gap-1 mb-3"><Truck size={16} /> 引越し初期費用</h2>
-                <div className="space-y-1.5 text-sm">
-                  {[
-                    { label: "敷金（0〜1ヶ月）", amount: 0 },
-                    { label: "礼金（1ヶ月）", amount: rentAvg },
-                    { label: "仲介手数料（0.5ヶ月）", amount: Math.round(rentAvg * 0.5) },
-                    { label: "前家賃（1ヶ月）", amount: rentAvg },
-                    { label: "火災保険", amount: 20000 },
-                    { label: "鍵交換", amount: 15000 },
-                    { label: "引越し業者（2人分）", amount: 80000 },
-                  ].map((item) => (
-                    <div key={item.label} className="flex justify-between"><span className="text-muted-foreground text-xs">{item.label}</span><span className="text-xs">{formatYen(item.amount)}</span></div>
-                  ))}
-                  <div className="border-t pt-1.5 flex justify-between font-bold">
-                    <span>合計目安</span><span className="text-primary">{formatYen(Math.round(rentAvg * 2.5) + 115000)}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+            return (
+              <>
+                {/* 暮らしのコスト試算 */}
+                {rent2ldk > 0 && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h2 className="font-semibold text-sm flex items-center gap-1 mb-3">
+                        <Wallet size={16} /> 暮らしのコスト（月額目安）
+                      </h2>
+                      <div className="text-center bg-primary/5 rounded-lg p-4 mb-3">
+                        <div className="text-3xl font-bold text-primary">
+                          {formatYen(monthlyCost)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          年間 {formatYen(monthlyCost * 12)}
+                        </div>
+                      </div>
+                      <details className="text-xs">
+                        <summary className="cursor-pointer text-muted-foreground">内訳を見る</summary>
+                        <div className="space-y-1 mt-2">
+                          {[
+                            { label: "2LDK家賃", amount: rent2ldk },
+                            { label: "管理費・共益費", amount: 20000 },
+                            { label: "水光熱費（世帯）", amount: 20000 },
+                            { label: "通信費（ネット + 携帯×2）", amount: 15000 },
+                            { label: "通勤定期 × 2人", amount: transitMonthly },
+                            { label: "日用品・消耗品", amount: 15000 },
+                          ].map((item) => (
+                            <div key={item.label} className="flex justify-between">
+                              <span className="text-muted-foreground">{item.label}</span>
+                              <span>{formatYen(item.amount)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* 引越し初期費用 */}
+                {rent2ldk > 0 && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h2 className="font-semibold text-sm flex items-center gap-1 mb-3">
+                        <Truck size={16} /> 引越し初期費用（目安）
+                      </h2>
+                      <div className="space-y-1.5 text-sm">
+                        {[
+                          { label: "敷金（0〜1ヶ月）", amount: 0 },
+                          { label: "礼金（1ヶ月）", amount: rent2ldk },
+                          { label: "仲介手数料（0.5ヶ月）", amount: Math.round(rent2ldk * 0.5) },
+                          { label: "前家賃（1ヶ月）", amount: rent2ldk },
+                          { label: "火災保険", amount: 20000 },
+                          { label: "鍵交換", amount: 15000 },
+                          { label: "引越し業者（2人分）", amount: 80000 },
+                        ].map((item) => (
+                          <div key={item.label} className="flex justify-between">
+                            <span className="text-muted-foreground text-xs">{item.label}</span>
+                            <span className="text-xs">{formatYen(item.amount)}</span>
+                          </div>
+                        ))}
+                        <div className="border-t pt-1.5 flex justify-between font-bold">
+                          <span>合計目安</span>
+                          <span className="text-primary">{formatYen(movingCost)}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* 物件検索リンク集 */}
+                {town.station_code && town.station && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h2 className="font-semibold text-sm flex items-center gap-1 mb-3">
+                        <Search size={16} /> 物件を探す
+                      </h2>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        各サイトで {town.station} 周辺の物件を検索
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(() => {
+                          const stationName = town.station.replace(/駅$/, "");
+                          const urls = buildSearchUrls(
+                            stationName,
+                            town.station_code,
+                            townProfile?.pref ?? "東京都"
+                          );
+                          const sites: [keyof typeof urls, string, string][] = [
+                            ["suumo", "SUUMO", "bg-green-600"],
+                            ["homes", "LIFULL HOME'S", "bg-orange-600"],
+                            ["athome", "アットホーム", "bg-blue-600"],
+                            ["chintai", "CHINTAI", "bg-purple-600"],
+                          ];
+                          return sites.map(([key, label, color]) => (
+                            <a
+                              key={key}
+                              href={urls[key]}
+                              target="_blank"
+                              rel="noopener sponsored"
+                              className={`${color} text-white text-xs font-semibold px-3 py-2.5 rounded-lg flex items-center justify-between active:scale-95 transition-transform`}
+                            >
+                              <span>{label}</span>
+                              <ExternalLink size={12} />
+                            </a>
+                          ));
+                        })()}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* 防災情報 */}
+                {townProfile?.location && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h2 className="font-semibold text-sm flex items-center gap-1 mb-3">
+                        <AlertTriangle size={16} /> 防災情報
+                      </h2>
+                      <a
+                        href={`https://disaportal.gsi.go.jp/maps/index.html?ll=${townProfile.location.lat},${townProfile.location.lng}&z=15&base=pale&ls=seamlesspic&disp=11111`}
+                        target="_blank"
+                        rel="noopener"
+                        className="block bg-red-50 border border-red-200 rounded-lg p-3 mb-2 active:scale-[0.98] transition-transform"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm font-semibold text-red-900">ハザードマップを見る</div>
+                            <div className="text-[11px] text-red-700 mt-0.5">浸水・土砂災害・地震・津波</div>
+                          </div>
+                          <ExternalLink size={14} className="text-red-700" />
+                        </div>
+                      </a>
+                      <p className="text-[10px] text-muted-foreground">
+                        国土交通省 ハザードマップポータル（{town.station} 周辺で開きます）
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            );
+          })()}
 
           {/* Commute */}
           <Card>
