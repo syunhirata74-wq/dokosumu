@@ -30,6 +30,47 @@ function MiniAvatar({ profile, size = 20 }: { profile: Profile; size?: number })
   );
 }
 
+function RatingBadge({
+  myRated,
+  partnerRated,
+  me,
+  partner,
+}: {
+  myRated: boolean;
+  partnerRated: boolean;
+  me: Profile | undefined;
+  partner: Profile | undefined;
+}) {
+  if (myRated && partnerRated && me && partner) {
+    return (
+      <div className="flex items-center gap-1 bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full shrink-0">
+        <div className="flex -space-x-1.5">
+          <MiniAvatar profile={me} size={18} />
+          <MiniAvatar profile={partner} size={18} />
+        </div>
+        <span>⭐ ふたりとも評価</span>
+      </div>
+    );
+  }
+  if (partnerRated && partner) {
+    return (
+      <div className="flex items-center gap-1 bg-pink-100 text-pink-700 text-[10px] font-medium px-2 py-1 rounded-full shrink-0">
+        <MiniAvatar profile={partner} size={18} />
+        <span>{partner.name}が評価</span>
+      </div>
+    );
+  }
+  if (myRated && me) {
+    return (
+      <div className="flex items-center gap-1 bg-muted text-muted-foreground text-[10px] font-medium px-2 py-1 rounded-full shrink-0">
+        <MiniAvatar profile={me} size={18} />
+        <span>あなたが評価</span>
+      </div>
+    );
+  }
+  return null;
+}
+
 function LikeBadge({
   side,
   me,
@@ -212,11 +253,13 @@ export default function MatchesPage() {
     return <div className="flex items-center justify-center h-64"><div className="animate-pulse"><Heart size={24} className="text-primary" /></div></div>;
   }
 
+  // Moved: visited tab shows towns where at least one user has rated
+  // (was: visited=true flag); wishlist = everything else.
   const wishlistTowns = towns
-    .filter((t) => !t.visited)
+    .filter((t) => t.ratings.length === 0)
     .map((t) => ({ town: t, side: getLikeSide(t, me?.id, partner?.id) }))
     .sort((a, b) => likePriority(b.side) - likePriority(a.side));
-  const visitedTowns = towns.filter((t) => t.visited);
+  const visitedTowns = towns.filter((t) => t.ratings.length > 0);
 
   return (
     <div className="p-4 space-y-4 pb-36">
@@ -373,102 +416,145 @@ export default function MatchesPage() {
             visitedTowns.map((town) => {
               const status = getRatingStatus(town, me, partner);
               const bothRated = status.myRated && status.partnerRated;
-              const neitherRated = !status.myRated && !status.partnerRated;
-
               const isSelected = selectedIds.has(town.id);
+              const profile = town.station_code ? profileByCode.get(town.station_code) : null;
               return (
-                <div key={town.id} className="relative">
+                <div
+                  key={town.id}
+                  className={`relative rounded-2xl transition-all ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
+                >
                   {selectMode && (
-                    <>
-                      <button
-                        onClick={() => toggleSelect(town.id)}
-                        aria-label={isSelected ? "選択解除" : "選択"}
-                        className="absolute inset-0 z-30 rounded-lg"
-                      />
-                      <div className="absolute top-3 left-3 z-40 pointer-events-none">
-                        <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center border-2 ${
-                            isSelected
-                              ? "bg-primary border-primary text-primary-foreground"
-                              : "bg-white/95 border-gray-300"
-                          }`}
-                        >
-                          {isSelected && <Check size={16} />}
-                        </div>
-                      </div>
-                    </>
+                    <button
+                      onClick={() => toggleSelect(town.id)}
+                      aria-label={isSelected ? "選択解除" : "選択"}
+                      className="absolute inset-0 z-30 rounded-2xl"
+                    />
                   )}
-                <Card className={`overflow-hidden ${bothRated ? "border-primary" : ""} ${isSelected ? "ring-2 ring-primary" : ""}`}>
-                  <CardContent className="p-0">
-                    <Link href={`/towns/${town.id}`}>
-                      <div className="p-4 pb-2">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-bold text-base">{town.name}</h3>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <MapPin size={12} /> {town.station}
-                            </p>
+                  {selectMode && (
+                    <div className="absolute top-3 left-3 z-40 pointer-events-none">
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center border-2 ${
+                          isSelected
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "bg-white/95 border-gray-300"
+                        }`}
+                      >
+                        {isSelected && <Check size={16} />}
+                      </div>
+                    </div>
+                  )}
+
+                  {profile ? (
+                    <>
+                      <TownPreviewCard town={profile} />
+                      <div className="absolute top-3 right-3 z-10">
+                        <RatingBadge
+                          myRated={status.myRated}
+                          partnerRated={status.partnerRated}
+                          me={me}
+                          partner={partner}
+                        />
+                      </div>
+                      {!selectMode && (
+                        <div className="mt-2 space-y-2">
+                          {/* Two-person rating status */}
+                          <div className="flex gap-2">
+                            {me && (
+                              <div className={`flex-1 flex items-center gap-2 p-2 rounded-lg text-xs ${status.myRated ? "bg-primary/5" : "bg-muted"}`}>
+                                <MiniAvatar profile={me} size={20} />
+                                <div>
+                                  <div className="font-medium">{me.name}</div>
+                                  <div className="text-muted-foreground text-[10px]">
+                                    {status.myRated ? (
+                                      <span className="text-primary flex items-center gap-0.5"><Star size={8} fill="currentColor" /> 評価済み</span>
+                                    ) : "未評価"}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            {partner && (
+                              <div className={`flex-1 flex items-center gap-2 p-2 rounded-lg text-xs ${status.partnerRated ? "bg-primary/5" : "bg-muted"}`}>
+                                <MiniAvatar profile={partner} size={20} />
+                                <div>
+                                  <div className="font-medium">{partner.name}</div>
+                                  <div className="text-muted-foreground text-[10px]">
+                                    {status.partnerRated ? (
+                                      <span className="text-primary flex items-center gap-0.5"><Star size={8} fill="currentColor" /> 評価済み</span>
+                                    ) : "未評価"}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          {bothRated && (
-                            <div className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
-                              <Check size={10} /> 二人とも評価済み
-                            </div>
-                          )}
-                        </div>
 
-                        {/* Two-person rating status */}
-                        <div className="flex gap-2 mt-3">
-                          {me && (
-                            <div className={`flex-1 flex items-center gap-2 p-2 rounded-lg text-xs ${status.myRated ? "bg-primary/5" : "bg-muted"}`}>
-                              <MiniAvatar profile={me} size={20} />
-                              <div>
-                                <div className="font-medium">{me.name}</div>
-                                <div className="text-muted-foreground text-[10px]">
-                                  {status.myRated ? (
-                                    <span className="text-primary flex items-center gap-0.5"><Star size={8} fill="currentColor" /> 評価済み</span>
-                                  ) : "未評価"}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          {partner && (
-                            <div className={`flex-1 flex items-center gap-2 p-2 rounded-lg text-xs ${status.partnerRated ? "bg-primary/5" : "bg-muted"}`}>
-                              <MiniAvatar profile={partner} size={20} />
-                              <div>
-                                <div className="font-medium">{partner.name}</div>
-                                <div className="text-muted-foreground text-[10px]">
-                                  {status.partnerRated ? (
-                                    <span className="text-primary flex items-center gap-0.5"><Star size={8} fill="currentColor" /> 評価済み</span>
-                                  ) : "未評価"}
-                                </div>
-                              </div>
-                            </div>
-                          )}
+                          <Link href={`/towns/${town.id}`} className="block">
+                            <Button size="sm" variant={status.myRated ? "outline" : "default"} className="w-full h-10">
+                              <Star size={14} className="mr-1" />
+                              {status.myRated ? "評価を見る・修正する" : "評価する"}
+                            </Button>
+                          </Link>
                         </div>
-                      </div>
-                    </Link>
-
-                    {/* Next action */}
-                    {!status.myRated && (
-                      <div className="px-4 pb-3">
-                        <Link href={`/towns/${town.id}/rate`}>
-                          <Button size="sm" variant="outline" className="w-full h-10">
-                            <Star size={14} className="mr-1" /> 評価する
-                          </Button>
-                        </Link>
-                      </div>
-                    )}
-                    {status.myRated && !status.myCommented && (
-                      <div className="px-4 pb-3">
+                      )}
+                    </>
+                  ) : (
+                    <Card className={`overflow-hidden ${bothRated ? "border-primary" : ""}`}>
+                      <CardContent className="p-0">
                         <Link href={`/towns/${town.id}`}>
-                          <Button size="sm" variant="outline" className="w-full h-10">
-                            <MessageCircle size={14} className="mr-1" /> 感想を書く
-                          </Button>
+                          <div className="p-4 pb-2">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="font-bold text-base">{town.name}</h3>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                  <MapPin size={12} /> {town.station}
+                                </p>
+                              </div>
+                              {bothRated && (
+                                <div className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                                  <Check size={10} /> 二人とも評価済み
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                              {me && (
+                                <div className={`flex-1 flex items-center gap-2 p-2 rounded-lg text-xs ${status.myRated ? "bg-primary/5" : "bg-muted"}`}>
+                                  <MiniAvatar profile={me} size={20} />
+                                  <div>
+                                    <div className="font-medium">{me.name}</div>
+                                    <div className="text-muted-foreground text-[10px]">
+                                      {status.myRated ? (
+                                        <span className="text-primary flex items-center gap-0.5"><Star size={8} fill="currentColor" /> 評価済み</span>
+                                      ) : "未評価"}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              {partner && (
+                                <div className={`flex-1 flex items-center gap-2 p-2 rounded-lg text-xs ${status.partnerRated ? "bg-primary/5" : "bg-muted"}`}>
+                                  <MiniAvatar profile={partner} size={20} />
+                                  <div>
+                                    <div className="font-medium">{partner.name}</div>
+                                    <div className="text-muted-foreground text-[10px]">
+                                      {status.partnerRated ? (
+                                        <span className="text-primary flex items-center gap-0.5"><Star size={8} fill="currentColor" /> 評価済み</span>
+                                      ) : "未評価"}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </Link>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                        <div className="px-4 pb-3">
+                          <Link href={`/towns/${town.id}`}>
+                            <Button size="sm" variant={status.myRated ? "outline" : "default"} className="w-full h-10">
+                              <Star size={14} className="mr-1" />
+                              {status.myRated ? "評価を見る・修正する" : "評価する"}
+                            </Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               );
             })
