@@ -234,17 +234,6 @@ export default function MatchesPage() {
     loadData();
   }
 
-  async function bulkMarkVisited() {
-    if (selectedIds.size === 0) return;
-    const ids = [...selectedIds];
-    await supabase
-      .from("towns")
-      .update({ visited: true, visited_at: new Date().toISOString().split("T")[0] })
-      .in("id", ids);
-    toast.success(`${ids.length}件を散歩済みにしました`);
-    exitSelectMode();
-    loadData();
-  }
 
   const me = members.find((m) => m.id === user?.id);
   const partner = members.find((m) => m.id !== user?.id);
@@ -543,14 +532,6 @@ export default function MatchesPage() {
               {selectedIds.size > 0 ? `${selectedIds.size}件選択中` : "町を選択してください"}
             </span>
           </div>
-          <button
-            onClick={bulkMarkVisited}
-            disabled={selectedIds.size === 0}
-            className="h-10 px-3 rounded-full border text-xs font-semibold active:scale-95 disabled:opacity-40 flex items-center gap-1"
-          >
-            <Footprints size={14} />
-            散歩済み
-          </button>
           <button
             onClick={bulkDelete}
             disabled={selectedIds.size === 0}
