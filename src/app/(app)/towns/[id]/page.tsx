@@ -66,10 +66,23 @@ export default function TownDetailPage() {
   const [selectedFacilityTypes, setSelectedFacilityTypes] = useState<string[]>([]);
   const [fetchingFacilities, setFetchingFacilities] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [heroPhoto, setHeroPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
   }, [townId]);
+
+  // Load hero photo from the TownProfile matching this town's station_code
+  useEffect(() => {
+    if (!town?.station_code) return;
+    fetch("/town-profiles.json")
+      .then((r) => r.json())
+      .then((profiles: { code: string; photos?: string[] }[]) => {
+        const match = profiles.find((p) => p.code === town.station_code);
+        if (match?.photos?.[0]) setHeroPhoto(match.photos[0]);
+      })
+      .catch(() => {});
+  }, [town?.station_code]);
 
   async function loadData() {
     const [townRes, spotsRes, ratingsRes, commentsRes, favoritesRes, rentRes, recsRes] =
@@ -250,25 +263,41 @@ export default function TownDetailPage() {
 
   return (
     <div className="pb-20">
-      {/* Hero header */}
-      <div className="relative bg-gradient-to-br from-emerald-200 to-emerald-50 p-4 pb-6">
-        <div className="flex items-center justify-between mb-4">
-          <Link href="/matches" className="text-sm text-muted-foreground">← 戻る</Link>
-          <button onClick={deleteTown} className="text-xs text-muted-foreground px-2 py-1 border rounded-md bg-white/50">削除</button>
-        </div>
-        <h1 className="text-2xl font-bold">{town.name}</h1>
-        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-          {town.station && <span className="flex items-center gap-1"><Train size={14} /> {town.station}</span>}
-          {town.visited_at && <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(town.visited_at).toLocaleDateString("ja-JP")}</span>}
-        </div>
-        {/* Recommend */}
-        <div className="flex items-center justify-between mt-3">
-          <span className="text-xs">
-            {bothRecommended ? "二人とも推し！" : recommendedBy.length > 0 ? `${recommendedBy[0]}が推し` : ""}
-          </span>
-          <button onClick={toggleRecommendation} className="active:scale-90 transition-transform">
-            <Heart size={24} className={iRecommended ? "text-red-500" : "text-gray-300"} fill={iRecommended ? "currentColor" : "none"} />
-          </button>
+      {/* Hero header with photo background */}
+      <div className="relative p-4 pb-6 overflow-hidden">
+        {heroPhoto ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={heroPhoto}
+              alt=""
+              aria-hidden
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-white/70 to-white/85 backdrop-blur-[1px]" />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-200 to-emerald-50" />
+        )}
+        <div className="relative">
+          <div className="flex items-center justify-between mb-4">
+            <Link href="/matches" className="text-sm text-muted-foreground">← 戻る</Link>
+            <button onClick={deleteTown} className="text-xs text-muted-foreground px-2 py-1 border rounded-md bg-white/70">削除</button>
+          </div>
+          <h1 className="text-2xl font-bold">{town.name}</h1>
+          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+            {town.station && <span className="flex items-center gap-1"><Train size={14} /> {town.station}</span>}
+            {town.visited_at && <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(town.visited_at).toLocaleDateString("ja-JP")}</span>}
+          </div>
+          {/* Recommend */}
+          <div className="flex items-center justify-between mt-3">
+            <span className="text-xs">
+              {bothRecommended ? "二人とも推し！" : recommendedBy.length > 0 ? `${recommendedBy[0]}が推し` : ""}
+            </span>
+            <button onClick={toggleRecommendation} className="active:scale-90 transition-transform">
+              <Heart size={24} className={iRecommended ? "text-red-500" : "text-gray-300"} fill={iRecommended ? "currentColor" : "none"} />
+            </button>
+          </div>
         </div>
       </div>
 
