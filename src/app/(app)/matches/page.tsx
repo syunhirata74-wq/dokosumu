@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { Town, Rating, TownComment, Spot, Profile, TownLike } from "@/types/database";
+import type { TownProfile } from "@/lib/diagnosis";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, MapPin, Compass, Heart, Check, Star, MessageCircle, Footprints } from "lucide-react";
 import { toast } from "sonner";
+import { TownPreviewCard } from "@/components/town-preview-card";
 
 type TownWithData = Town & {
   ratings: Rating[];
@@ -94,7 +96,21 @@ export default function MatchesPage() {
   const [towns, setTowns] = useState<TownWithData[]>([]);
   const [members, setMembers] = useState<Profile[]>([]);
   const [likes, setLikes] = useState<TownLike[]>([]);
+  const [profiles, setProfiles] = useState<TownProfile[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/town-profiles.json")
+      .then((r) => r.json())
+      .then(setProfiles)
+      .catch(() => setProfiles([]));
+  }, []);
+
+  const profileByCode = useMemo(() => {
+    const m = new Map<string, TownProfile>();
+    for (const p of profiles) m.set(p.code, p);
+    return m;
+  }, [profiles]);
 
   const loadData = useCallback(async () => {
     if (!profile?.couple_id) return;
@@ -197,33 +213,58 @@ export default function MatchesPage() {
               </Link>
             </div>
           ) : (
-            wishlistTowns.map(({ town, side }) => (
-              <Card
-                key={town.id}
-                className={`overflow-hidden ${side === "both" ? "border-primary border-2" : ""}`}
-              >
-                <CardContent className="p-0">
-                  <Link href={`/towns/${town.id}`}>
-                    <div className="p-4 pb-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-bold text-base truncate">{town.name}</h3>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <MapPin size={12} /> {town.station}
-                          </p>
-                        </div>
+            wishlistTowns.map(({ town, side }) => {
+              const profile = town.station_code ? profileByCode.get(town.station_code) : null;
+              return (
+                <div key={town.id} className={`relative rounded-2xl ${side === "both" ? "ring-2 ring-primary" : ""}`}>
+                  {profile ? (
+                    <>
+                      <TownPreviewCard town={profile} />
+                      {/* Overlay LIKE badge on top-right of the preview photo */}
+                      <div className="absolute top-3 right-3 z-10">
                         <LikeBadge side={side} me={me} partner={partner} />
                       </div>
-                    </div>
-                  </Link>
-                  <div className="px-4 pb-3">
-                    <Button size="sm" className="w-full h-10" onClick={(e) => { e.preventDefault(); markVisited(town.id); }}>
-                      <Footprints size={16} className="mr-1" /> 二人で散歩してきた！
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                      {/* Walk-together CTA under the card */}
+                      <div className="mt-2">
+                        <Button size="sm" className="w-full h-10" onClick={() => markVisited(town.id)}>
+                          <Footprints size={16} className="mr-1" /> 二人で散歩してきた！
+                        </Button>
+                      </div>
+                      {/* Tap anywhere on the name area to go to the town detail (DB) page */}
+                      <Link
+                        href={`/towns/${town.id}`}
+                        className="block mt-1 text-[11px] text-center text-muted-foreground underline"
+                      >
+                        評価・スポット・コメントを見る →
+                      </Link>
+                    </>
+                  ) : (
+                    <Card className={`overflow-hidden ${side === "both" ? "border-primary border-2" : ""}`}>
+                      <CardContent className="p-0">
+                        <Link href={`/towns/${town.id}`}>
+                          <div className="p-4 pb-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <h3 className="font-bold text-base truncate">{town.name}</h3>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                  <MapPin size={12} /> {town.station}
+                                </p>
+                              </div>
+                              <LikeBadge side={side} me={me} partner={partner} />
+                            </div>
+                          </div>
+                        </Link>
+                        <div className="px-4 pb-3">
+                          <Button size="sm" className="w-full h-10" onClick={(e) => { e.preventDefault(); markVisited(town.id); }}>
+                            <Footprints size={16} className="mr-1" /> 二人で散歩してきた！
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              );
+            })
           )}
         </TabsContent>
 

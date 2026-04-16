@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, Pin } from "lucide-react";
+import type { TownProfile } from "@/lib/diagnosis";
+import { TownPreviewCard } from "@/components/town-preview-card";
 
 type Station = { c: string; n: string; p: string };
 
@@ -17,6 +19,7 @@ export default function NewTownPage() {
   const { profile } = useAuth();
   const router = useRouter();
   const [stations, setStations] = useState<Station[]>([]);
+  const [profiles, setProfiles] = useState<TownProfile[]>([]);
   const [name, setName] = useState("");
   const [stationQuery, setStationQuery] = useState("");
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
@@ -31,7 +34,16 @@ export default function NewTownPage() {
     fetch("/stations.json")
       .then((r) => r.json())
       .then(setStations);
+    fetch("/town-profiles.json")
+      .then((r) => r.json())
+      .then(setProfiles)
+      .catch(() => setProfiles([]));
   }, []);
+
+  const selectedProfile = useMemo(() => {
+    if (!selectedStation) return null;
+    return profiles.find((p) => p.code === selectedStation.c) ?? null;
+  }, [selectedStation, profiles]);
 
   const filteredStations = useMemo(() => {
     if (!stationQuery.trim()) return [];
@@ -150,6 +162,13 @@ export default function NewTownPage() {
                 </p>
               )}
             </div>
+
+            {/* Town card preview */}
+            {selectedProfile && (
+              <div className="pt-2">
+                <TownPreviewCard town={selectedProfile} />
+              </div>
+            )}
 
             {/* Town name */}
             <div className="space-y-2">
