@@ -1,4 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+
+function getAdmin() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return null;
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    auth: { persistSession: false },
+  });
+}
 
 export async function GET(request: NextRequest) {
   const from = request.nextUrl.searchParams.get("from");
@@ -13,6 +24,29 @@ export async function GET(request: NextRequest) {
 
   const cleanFrom = from.replace(/駅$/, "");
   const cleanTo = to.replace(/駅$/, "");
+
+  // 1. Try cache first
+  const admin = getAdmin();
+  if (admin) {
+    const { data: cached } = await admin
+      .from("town_commutes_cache")
+      .select("*")
+      .eq("from_station", cleanFrom)
+      .eq("to_station", cleanTo)
+      .maybeSingle();
+    if (cached) {
+      return NextResponse.json({
+        from: cached.from_station,
+        to: cached.to_station,
+        minutes: cached.minutes,
+        fare: cached.fare,
+        transfers: cached.transfers,
+        route: cached.route,
+        transitUrl: `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(cleanFrom)}&to=${encodeURIComponent(cleanTo)}&type=1&ticket=ic`,
+        cached: true,
+      });
+    }
+  }
 
   try {
     // Use Yahoo Transit (mobile page) for route search
@@ -74,6 +108,24 @@ export async function GET(request: NextRequest) {
     // Yahoo Transit link for user
     const transitUrl = `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(cleanFrom)}&to=${encodeURIComponent(cleanTo)}&type=1&ticket=ic`;
 
+    // Persist to cache
+    if (admin && minutes != null) {
+      await admin
+        .from("town_commutes_cache")
+        .upsert(
+          {
+            from_station: cleanFrom,
+            to_station: cleanTo,
+            minutes,
+            fare,
+            transfers,
+            route: routeSummary.length > 0 ? routeSummary : null,
+            fetched_at: new Date().toISOString(),
+          },
+          { onConflict: "from_station,to_station" }
+        );
+    }
+
     return NextResponse.json({
       from: cleanFrom,
       to: cleanTo,
@@ -82,6 +134,7 @@ export async function GET(request: NextRequest) {
       transfers,
       route: routeSummary.length > 0 ? routeSummary : null,
       transitUrl,
+      cached: false,
     });
   } catch {
     return NextResponse.json(
