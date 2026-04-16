@@ -566,11 +566,16 @@ export default function TownDetailPage() {
                 {town.station_code && town.station && (
                   <Card>
                     <CardContent className="p-4">
-                      <h2 className="font-semibold text-sm flex items-center gap-1 mb-3">
-                        <Search size={16} /> 物件を探す
-                      </h2>
-                      <p className="text-xs text-muted-foreground mb-3">
-                        各サイトで {town.station} 周辺の物件を検索
+                      <div className="flex items-center justify-between mb-1">
+                        <h2 className="font-semibold text-sm flex items-center gap-1">
+                          <Search size={16} /> 物件を探す
+                        </h2>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                          広告
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mb-3">
+                        {town.station} 周辺の物件を各サイトで検索できます
                       </p>
                       <div className="grid grid-cols-2 gap-2">
                         {(() => {
@@ -591,7 +596,7 @@ export default function TownDetailPage() {
                               key={key}
                               href={urls[key]}
                               target="_blank"
-                              rel="noopener sponsored"
+                              rel="noopener sponsored nofollow"
                               className={`${color} text-white text-xs font-semibold px-3 py-2.5 rounded-lg flex items-center justify-between active:scale-95 transition-transform`}
                             >
                               <span>{label}</span>
@@ -600,6 +605,12 @@ export default function TownDetailPage() {
                           ));
                         })()}
                       </div>
+                      <p className="text-[10px] text-muted-foreground mt-3 leading-relaxed">
+                        ※ このカード内のリンクは広告（アフィリエイト）です。
+                        リンク先で物件の問い合わせ・契約が発生した場合、当サイトに
+                        紹介料が支払われることがあります。物件情報の正確性は
+                        各サイトに準じます。
+                      </p>
                     </CardContent>
                   </Card>
                 )}
