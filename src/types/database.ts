@@ -468,10 +468,18 @@ export const RATING_CATEGORIES = [
 export type RatingKey = (typeof RATING_CATEGORIES)[number]["key"];
 
 export const SPOT_CATEGORIES = [
-  { value: "cafe", label: "カフェ", icon: "☕" },
   { value: "supermarket", label: "スーパー", icon: "🛒" },
+  { value: "convenience_store", label: "コンビニ", icon: "🏪" },
+  { value: "hospital", label: "病院", icon: "🏥" },
+  { value: "pharmacy", label: "薬局", icon: "💊" },
   { value: "park", label: "公園", icon: "🌳" },
-  { value: "restaurant", label: "レストラン", icon: "🍽️" },
+  { value: "gym", label: "ジム", icon: "🏋️" },
+  { value: "restaurant", label: "飲食店", icon: "🍽️" },
+  { value: "cafe", label: "カフェ", icon: "☕" },
+  { value: "day_care", label: "保育園", icon: "🧒" },
+  { value: "primary_school", label: "小学校", icon: "🏫" },
+  { value: "secondary_school", label: "中学・高校", icon: "🎒" },
+  { value: "library", label: "図書館", icon: "📚" },
   { value: "vibe", label: "雰囲気", icon: "✨" },
   { value: "other", label: "その他", icon: "📍" },
 ] as const;
