@@ -41,6 +41,7 @@ const RENT_OPTIONS_BY_MADORI: Record<Madori, { label: string; value: number }[]>
 
 const COMMUTE_OPTIONS = [
   { label: "指定なし", value: null as number | null },
+  { label: "〜15分", value: 15 },
   { label: "〜30分", value: 30 },
   { label: "〜45分", value: 45 },
   { label: "〜60分", value: 60 },
@@ -523,11 +524,15 @@ export default function HomePage() {
       });
     }
 
-    // 主要駅までの所要時間（選択したハブのどれか1つが制限時間以内）
-    if (hubLimit !== null && selectedHubs.size > 0) {
+    // 主要駅までの所要時間
+    //  - ハブ指定あり: 選択ハブのどれか1つが時間以内
+    //  - ハブ指定なし: 東京/渋谷/新宿のどれか1つが時間以内
+    if (hubLimit !== null) {
+      const hubsToCheck: ("東京" | "渋谷" | "新宿")[] =
+        selectedHubs.size > 0 ? [...selectedHubs] : ["東京", "渋谷", "新宿"];
       result = result.filter((t) => {
         if (!t.commuteHubs) return false;
-        for (const hub of selectedHubs) {
+        for (const hub of hubsToCheck) {
           const m = t.commuteHubs[hub];
           if (m !== undefined && m <= hubLimit) return true;
         }
@@ -802,6 +807,7 @@ export default function HomePage() {
               <div className="flex flex-wrap gap-1.5">
                 {[
                   { label: "指定なし", value: null as number | null },
+                  { label: "〜15分", value: 15 },
                   { label: "〜30分", value: 30 },
                   { label: "〜45分", value: 45 },
                   { label: "〜60分", value: 60 },
@@ -809,18 +815,17 @@ export default function HomePage() {
                   <button
                     key={o.label}
                     onClick={() => setHubLimit(o.value)}
-                    disabled={selectedHubs.size === 0 && o.value !== null}
                     className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
                       hubLimit === o.value ? "bg-primary text-primary-foreground" : "bg-muted"
-                    } disabled:opacity-40`}
+                    }`}
                   >
                     {o.label}
                   </button>
                 ))}
               </div>
-              {selectedHubs.size === 0 && hubLimit !== null && (
+              {hubLimit !== null && selectedHubs.size === 0 && (
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  ※ 駅を一つ以上選んでください
+                  ※ 東京/渋谷/新宿のどれか1つでもこの時間内に着ける町
                 </p>
               )}
             </div>
