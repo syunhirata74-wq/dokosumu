@@ -323,9 +323,11 @@ export default function TownDetailPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-semibold text-sm">二人の評価</h2>
-                <Link href={`/towns/${townId}/rate`}>
-                  <Button variant="outline" size="sm">{myRating ? "修正する" : "評価する"}</Button>
-                </Link>
+                {myRating && (
+                  <Link href={`/towns/${townId}/rate`}>
+                    <Button variant="outline" size="sm">修正する</Button>
+                  </Link>
+                )}
               </div>
               {ratings.length > 0 ? (
                 <div className="space-y-2">
