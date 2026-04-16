@@ -367,6 +367,8 @@ export default function HomePage() {
   const [commuteLimit, setCommuteLimit] = useState<number | null>(null);
   const [selectedLines, setSelectedLines] = useState<Set<string>>(new Set());
   const [commuteMap, setCommuteMap] = useState<Record<string, number>>({});
+  const [selectedHubs, setSelectedHubs] = useState<Set<"東京" | "渋谷" | "新宿">>(new Set());
+  const [hubLimit, setHubLimit] = useState<number | null>(null);
   const [partner, setPartner] = useState<Profile | null>(null);
   const [partnerLikes, setPartnerLikes] = useState<Set<string>>(new Set());
   const [mySwiped, setMySwiped] = useState<Set<string>>(new Set());
@@ -513,6 +515,18 @@ export default function HomePage() {
       });
     }
 
+    // 主要駅までの所要時間（選択したハブのどれか1つが制限時間以内）
+    if (hubLimit !== null && selectedHubs.size > 0) {
+      result = result.filter((t) => {
+        if (!t.commuteHubs) return false;
+        for (const hub of selectedHubs) {
+          const m = t.commuteHubs[hub];
+          if (m !== undefined && m <= hubLimit) return true;
+        }
+        return false;
+      });
+    }
+
     // 雰囲気
     if (ambiance !== "all") result = result.filter((t) => matchesAmbiance(t, ambiance));
 
@@ -520,13 +534,13 @@ export default function HomePage() {
     result = result.filter((t) => !mySwiped.has(t.code));
 
     return [...result].sort((a, b) => stableHash(a.code + seed) - stableHash(b.code + seed));
-  }, [allTowns, prefFilter, rentLimits, selectedLines, commuteLimit, commuteMap, ambiance, seed, mySwiped]);
+  }, [allTowns, prefFilter, rentLimits, selectedLines, commuteLimit, commuteMap, selectedHubs, hubLimit, ambiance, seed, mySwiped]);
 
   // Reset index when filters change
   useEffect(() => {
     setCurrentIndex(0);
     setLikedCount(0);
-  }, [prefFilter, rentLimits, ambiance, commuteLimit, selectedLines]);
+  }, [prefFilter, rentLimits, ambiance, commuteLimit, selectedLines, selectedHubs, hubLimit]);
 
   // Reset photo carousel whenever we advance to a new town
   useEffect(() => {
@@ -749,6 +763,60 @@ export default function HomePage() {
               </div>
             )}
 
+            {/* 主要駅までの所要時間 */}
+            <div>
+              <label className="text-[11px] text-muted-foreground mb-1 block">
+                主要駅までの所要時間
+              </label>
+              <div className="flex flex-wrap gap-1.5 mb-1.5">
+                {(["東京", "渋谷", "新宿"] as const).map((hub) => {
+                  const active = selectedHubs.has(hub);
+                  return (
+                    <button
+                      key={hub}
+                      onClick={() =>
+                        setSelectedHubs((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(hub)) next.delete(hub);
+                          else next.add(hub);
+                          return next;
+                        })
+                      }
+                      className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
+                        active ? "bg-primary text-primary-foreground" : "bg-muted"
+                      }`}
+                    >
+                      {hub}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: "指定なし", value: null as number | null },
+                  { label: "〜30分", value: 30 },
+                  { label: "〜45分", value: 45 },
+                  { label: "〜60分", value: 60 },
+                ].map((o) => (
+                  <button
+                    key={o.label}
+                    onClick={() => setHubLimit(o.value)}
+                    disabled={selectedHubs.size === 0 && o.value !== null}
+                    className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
+                      hubLimit === o.value ? "bg-primary text-primary-foreground" : "bg-muted"
+                    } disabled:opacity-40`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+              {selectedHubs.size === 0 && hubLimit !== null && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  ※ 駅を一つ以上選んでください
+                </p>
+              )}
+            </div>
+
             {knownLinesCount > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-1.5">
@@ -854,6 +922,8 @@ export default function HomePage() {
                   setAmbiance("all");
                   setCommuteLimit(null);
                   setSelectedLines(new Set());
+                  setSelectedHubs(new Set());
+                  setHubLimit(null);
                 }}
                 className="flex-1 h-12 rounded-full border-2 border-gray-300 bg-white font-semibold text-gray-600 active:scale-95 transition-transform"
               >
