@@ -269,7 +269,7 @@ export default function MatchesPage() {
       <Tabs defaultValue="wishlist">
         <TabsList className="w-full">
           <TabsTrigger value="wishlist" className="flex-1">行きたい ({wishlistTowns.length})</TabsTrigger>
-          <TabsTrigger value="visited" className="flex-1">行った ({visitedTowns.length})</TabsTrigger>
+          <TabsTrigger value="visited" className="flex-1">評価済み ({visitedTowns.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="wishlist" className="mt-4 space-y-3">
@@ -320,12 +320,14 @@ export default function MatchesPage() {
                       <div className="absolute top-3 right-3 z-10">
                         <LikeBadge side={side} me={me} partner={partner} />
                       </div>
-                      {/* Walk-together CTA under the card (hidden in select mode) */}
+                      {/* Go to the rich town detail page (評価・スポット・コメント等) */}
                       {!selectMode && (
                         <div className="mt-2">
-                          <Button size="sm" className="w-full h-10" onClick={() => markVisited(town.id)}>
-                            <Footprints size={16} className="mr-1" /> 二人で散歩してきた！
-                          </Button>
+                          <Link href={`/towns/${town.id}`} className="block">
+                            <Button size="sm" className="w-full h-10">
+                              <Footprints size={16} className="mr-1" /> 町を調べる・評価する
+                            </Button>
+                          </Link>
                         </div>
                       )}
                     </>
@@ -346,9 +348,11 @@ export default function MatchesPage() {
                           </div>
                         </Link>
                         <div className="px-4 pb-3">
-                          <Button size="sm" className="w-full h-10" onClick={(e) => { e.preventDefault(); markVisited(town.id); }}>
-                            <Footprints size={16} className="mr-1" /> 二人で散歩してきた！
-                          </Button>
+                          <Link href={`/towns/${town.id}`} className="block">
+                            <Button size="sm" className="w-full h-10">
+                              <Footprints size={16} className="mr-1" /> 町を調べる・評価する
+                            </Button>
+                          </Link>
                         </div>
                       </CardContent>
                     </Card>
