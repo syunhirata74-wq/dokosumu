@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, Clock, MapPin, Users, BarChart3, Layers } from "lucide-react";
+import { Sparkles, Clock, MapPin, Users, BarChart3 } from "lucide-react";
 
 export default function DiagnosisPage() {
   const router = useRouter();
@@ -27,7 +27,7 @@ export default function DiagnosisPage() {
             </div>
             <div className="flex items-center gap-2 text-sm">
               <MapPin size={14} className="text-muted-foreground" />
-              <span>対象エリア: 一都三県+関西</span>
+              <span>対象エリア: 一都三県</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Users size={14} className="text-muted-foreground" />
@@ -43,18 +43,6 @@ export default function DiagnosisPage() {
           </Button>
         </CardContent>
       </Card>
-
-      <button
-        onClick={() => router.push("/diagnosis/swipe")}
-        className="w-full max-w-sm bg-white/80 rounded-xl p-4 flex items-center gap-3 active:scale-[0.98] transition-transform"
-      >
-        <Layers size={24} className="text-primary" />
-        <div className="text-left flex-1">
-          <p className="font-bold text-sm">町スワイプ</p>
-          <p className="text-xs text-muted-foreground">直感で「住みたい/パス」を選んで好みを分析</p>
-        </div>
-        <span className="text-muted-foreground text-sm">→</span>
-      </button>
 
       <button
         onClick={() => router.push("/diagnosis/values")}
